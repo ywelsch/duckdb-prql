@@ -1,0 +1,9 @@
+[submodule "duckdb"]
+	path = duckdb
+	url = https://github.com/duckdb/duckdb
+[submodule "prql"]
+	path = prql
+	url = https://github.com/PRQL/prql
+[submodule "corrosion"]
+	path = corrosion
+	url = https://github.com/corrosion-rs/corrosion.git

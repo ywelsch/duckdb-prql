@@ -1,0 +1,23 @@
+# name: test/sql/prql.test
+# description: test prql extension
+# group: [prql]
+
+statement ok
+CREATE TABLE t1(i INTEGER);
+
+# Before we load the extension, this will fail
+statement error
+from t1 | sort i
+----
+Parser Error: syntax error at or near "|"
+
+# Require statement will ensure this test is run with this extension loaded
+require prql
+
+# Confirm the extension works
+statement ok
+from t1 | sort i
+
+# Tailing semicolon should work (e.g. used as part of CLI)
+statement ok
+from t1 | sort i;
