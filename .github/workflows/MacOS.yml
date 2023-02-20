@@ -9,15 +9,15 @@ defaults:
 
 jobs:
   macos:
-    name: MacOS Release (Universal)
+    name: MacOS Release
     runs-on: macos-latest
     strategy:
       matrix:
         # Add commits/tags to build against other DuckDB versions
         duckdb_version: [ '<submodule_version>' ]
-
+        # Universal build (OSX_BUILD_UNIVERSAL: 1) not possible, see: https://github.com/corrosion-rs/corrosion/issues/115
+        arch: ['osx_amd64', 'osx_arm64']
     env:
-      # OSX_BUILD_UNIVERSAL: 1 TODO: https://github.com/corrosion-rs/corrosion/issues/115
       GEN: ninja
 
     steps:
@@ -30,6 +30,7 @@ jobs:
         run: brew install ninja
       
       - name: Install Rust Cross-compilation targets
+        if: ${{ matrix.arch == 'osx_arm64' }}
         run: rustup target add aarch64-apple-darwin
       
       - uses: actions/setup-python@v2
@@ -42,12 +43,23 @@ jobs:
           cd duckdb
           git checkout ${{ matrix.duckdb_version }}
 
-         # Build extension
+        # Build extension
       - name: Build extension
+        env:
+          Rust_CARGO_TARGET: ${{ matrix.arch == 'osx_arm64' && 'aarch64-apple-darwin' || '' }}
+          CMAKE_OSX_ARCHITECTURES: ${{ matrix.arch == 'osx_arm64' && 'arm64' || '' }}
         shell: bash
-        run: |
-          make release
-          make test
+        run: make release
+
+      - name: Build extension
+        if: ${{ matrix.arch != 'osx_arm64'}}
+        run: make test
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{matrix.arch}}-extensions
+          path: |
+            build/release/extension/prql/prql.duckdb_extension
 
       - name: Deploy
         env:
@@ -59,18 +71,14 @@ jobs:
           cd duckdb
           git fetch --tags
           export DUCKDB_VERSION=`git tag --points-at HEAD`
-          echo $DUCKDB_VERSION
           export DUCKDB_VERSION=${DUCKDB_VERSION:=`git log -1 --format=%h`}
-          echo $DUCKDB_VERSION
           cd ..
           if [[ "$AWS_ACCESS_KEY_ID" == "" ]] ; then
             echo 'No key set, skipping'
           elif [[ "$GITHUB_REF" =~ ^(refs/tags/v.+)$ ]] ; then
             python -m pip install awscli
-            ./scripts/extension-upload.sh prql ${{ github.ref_name }} $DUCKDB_VERSION osx_amd64 $BUCKET_NAME true
-            ./scripts/extension-upload.sh prql ${{ github.ref_name }} $DUCKDB_VERSION osx_arm64 $BUCKET_NAME true
+            ./scripts/extension-upload.sh prql ${{ github.ref_name }} $DUCKDB_VERSION ${{matrix.arch}} $BUCKET_NAME true
           elif [[ "$GITHUB_REF" =~ ^(refs/heads/main)$ ]] ; then
             python -m pip install awscli
-            ./scripts/extension-upload.sh prql `git log -1 --format=%h` $DUCKDB_VERSION osx_amd64 $BUCKET_NAME false
-            ./scripts/extension-upload.sh prql `git log -1 --format=%h` $DUCKDB_VERSION osx_arm64 $BUCKET_NAME false
+            ./scripts/extension-upload.sh prql `git log -1 --format=%h` $DUCKDB_VERSION ${{matrix.arch}} $BUCKET_NAME false
           fi
