@@ -97,12 +97,17 @@ jobs:
         path: |
           build/release/extension/prql/prql.duckdb_extension
 
+    - name: Install SSH Key
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+    
     - name: Deploy
       env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.S3_DEPLOY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_DEPLOY_KEY }}
-        AWS_DEFAULT_REGION: ${{ secrets.S3_REGION }}
-        BUCKET_NAME: ${{ secrets.S3_BUCKET }}
+        SSH_USER: ${{ secrets.SSH_USER }}
+        SSH_HOST: ${{ secrets.SSH_HOST }}
+        UPLOAD_BASE_PATH: ${{ secrets.UPLOAD_BASE_PATH }}
       run: |
         git config --global --add safe.directory '*'
         cd duckdb
@@ -114,8 +119,8 @@ jobs:
           echo 'No key set, skipping'
         elif [[ "$GITHUB_REF" =~ ^(refs/tags/v.+)$ ]] ; then
           python3 -m pip install pip awscli
-          ./scripts/extension-upload.sh prql ${{ github.ref_name }} $DUCKDB_VERSION ${{matrix.arch}} $BUCKET_NAME true
+          ./scripts/extension-upload.sh prql ${{ github.ref_name }} $DUCKDB_VERSION ${{matrix.arch}} true
         elif [[ "$GITHUB_REF" =~ ^(refs/heads/main)$ ]] ; then
           python3 -m pip install pip awscli
-          ./scripts/extension-upload.sh prql `git log -1 --format=%h` $DUCKDB_VERSION ${{matrix.arch}} $BUCKET_NAME false
+          ./scripts/extension-upload.sh prql `git log -1 --format=%h` $DUCKDB_VERSION ${{matrix.arch}} false
         fi
