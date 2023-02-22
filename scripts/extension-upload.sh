@@ -14,13 +14,11 @@ ext="build/release/extension/$1/$1.duckdb_extension"
 # compress extension binary
 gzip < $ext > "$1.duckdb_extension.gz"
 
-# upload compressed extension binary to S3
+# upload compressed extension binary
 ssh ${SSH_USER}@${SSH_HOST} "mkdir -p ${UPLOAD_BASE_PATH}/$1/$2/$3/$4"
 scp $1.duckdb_extension.gz ${SSH_USER}@${SSH_HOST}:${UPLOAD_BASE_PATH}/$1/$2/$3/$4/$1.duckdb_extension.gz
 
-if [ $5 = 'true']
-then
+if [ $5 = 'true' ] ; then
   ssh ${SSH_USER}@${SSH_HOST} "mkdir -p ${UPLOAD_BASE_PATH}/$1/latest/$3/$4"
   scp $1.duckdb_extension.gz ${SSH_USER}@${SSH_HOST}:${UPLOAD_BASE_PATH}/$1/latest/$3/$4/$1.duckdb_extension.gz
 fi
-# also uplo

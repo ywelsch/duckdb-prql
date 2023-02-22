@@ -64,9 +64,7 @@ jobs:
           if [[ "$SSH_HOST" == "" ]] ; then
             echo 'No key set, skipping'
           elif [[ "$GITHUB_REF" =~ ^(refs/tags/v.+)$ ]] ; then
-            python -m pip install awscli
             ./scripts/extension-upload.sh prql ${{ github.ref_name }} $DUCKDB_VERSION windows_amd64 true 
           elif [[ "$GITHUB_REF" =~ ^(refs/heads/main)$ ]] ; then
-            python -m pip install awscli
             ./scripts/extension-upload.sh prql `git log -1 --format=%h` $DUCKDB_VERSION windows_amd64 false 
           fi
