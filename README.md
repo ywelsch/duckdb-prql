@@ -2,26 +2,9 @@
 
 Extension to [DuckDB](https://duckdb.org) that allows running [PRQL](https://prql-lang.org) commands directly within DuckDB.
 
-## Building
-To build the extension:
-```sh
-make
-```
-The main binaries that will be built are:
-```sh
-./build/release/duckdb
-./build/release/test/unittest
-./build/release/extension/prql/prql.duckdb_extension
-```
-- `duckdb` is the binary for the duckdb shell with the extension code automatically loaded. 
-- `unittest` is the test runner of duckdb. Again, the extension is already linked into the binary.
-- `prql.duckdb_extension` is the loadable binary as it would be distributed.
-
 ## Running the extension
-To run the extension code, simply start the shell with `./build/release/duckdb`.
 
-Now you can directly query DuckDB using PRQL, the Piped Relational Query Language.
-Both PRQL and SQL commands are supported within the same shell.
+For installation instructions, see further below. After installing the extension, you can directly query DuckDB using PRQL, the Piped Relational Query Language. Both PRQL and SQL commands are supported within the same shell.
 
 As PRQL does not support DDL commands, we use SQL for defining our tables:
 
@@ -82,3 +65,48 @@ which returns:
 │ 10 rows                                           4 columns │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+## Install
+
+To install the PRQL extension, DuckDB needs to be launched with the `allow_unsigned_extensions` option set to true.
+Depending on the DuckDB usage, this can be configured as follows:
+
+CLI:
+```shell
+duckdb -unsigned
+```
+
+Python:
+```python
+con = duckdb.connect(':memory:', config={'allow_unsigned_extensions' : 'true'})
+```
+
+A custom extension repository then needs to be defined as follows:
+```sql
+SET custom_extension_repository='welsch.lu/duckdb/prql/latest';
+```
+Note that the `/latest` path will provide the latest extension version available for the current version of DuckDB.
+A given extension version can be selected by using that version as last path element instead.
+
+After running these steps, the extension can then be installed and loaded using the regular INSTALL/LOAD commands in DuckDB:
+```sql
+FORCE INSTALL prql; # To override current installation with latest
+LOAD prql;
+```
+
+## Build from source
+To build the extension:
+```sh
+make
+```
+The main binaries that will be built are:
+```sh
+./build/release/duckdb
+./build/release/test/unittest
+./build/release/extension/prql/prql.duckdb_extension
+```
+- `duckdb` is the binary for the duckdb shell with the extension code automatically loaded.
+- `unittest` is the test runner of duckdb. Again, the extension is already linked into the binary.
+- `prql.duckdb_extension` is the loadable binary as it would be distributed.
+
+To run the extension code, simply start the shell with `./build/release/duckdb`.

@@ -18,6 +18,6 @@ require prql
 statement ok
 from t1 | sort i
 
-# Tailing semicolon should work (e.g. used as part of CLI)
+# Trailing semicolon should work (e.g. used as part of CLI)
 statement ok
 from t1 | sort i;

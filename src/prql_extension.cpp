@@ -15,16 +15,16 @@ namespace duckdb {
 
 static void LoadInternal(DatabaseInstance &instance) {
   Connection con(instance);
-}
-
-void PrqlExtension::Load(DuckDB &db) {
-  auto &config = duckdb::DBConfig::GetConfig(*db.instance);
+  con.BeginTransaction();
+  auto &config = DBConfig::GetConfig(instance);
   PrqlParserExtension prql_parser;
   config.parser_extensions.emplace_back(prql_parser);
-
-  config.operator_extensions.push_back(make_unique<PrqlOperatorExtension>());
-  LoadInternal(*db.instance);
+  config.operator_extensions.emplace_back(make_unique<PrqlOperatorExtension>());
+  con.Commit();
 }
+
+void PrqlExtension::Load(DuckDB &db) { LoadInternal(*db.instance); }
+
 std::string PrqlExtension::Name() { return "prql"; }
 
 ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
@@ -95,7 +95,7 @@ BoundStatement prql_bind(ClientContext &context, Binder &binder,
   switch (statement.type) {
   case StatementType::EXTENSION_STATEMENT: {
     auto &extension_statement = dynamic_cast<ExtensionStatement &>(statement);
-    if (extension_statement.extension.parse_function == &prql_parse) {
+    if (extension_statement.extension.parse_function == prql_parse) {
       auto lookup = context.registered_state.find("prql");
       if (lookup != context.registered_state.end()) {
         auto prql_state = (PrqlState *)lookup->second.get();
@@ -104,6 +104,7 @@ BoundStatement prql_bind(ClientContext &context, Binder &binder,
             dynamic_cast<PrqlParseData *>(prql_state->parse_data.get());
         return prql_binder->Bind(*(prql_parse_data->statement));
       }
+      throw BinderException("Registered state not found");
     }
   }
   default:
