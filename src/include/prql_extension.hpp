@@ -7,7 +7,7 @@ namespace duckdb {
 class PrqlExtension : public Extension {
 public:
   void Load(DuckDB &db) override;
-  std::string Name() override;
+  std::string Name() override { return "prql"; }
 };
 
 BoundStatement prql_bind(ClientContext &context, Binder &binder,

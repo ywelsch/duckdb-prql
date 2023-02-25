@@ -14,18 +14,13 @@ int to_sql(const char *prql_query, char *sql_query);
 namespace duckdb {
 
 static void LoadInternal(DatabaseInstance &instance) {
-  Connection con(instance);
-  con.BeginTransaction();
   auto &config = DBConfig::GetConfig(instance);
   PrqlParserExtension prql_parser;
-  config.parser_extensions.emplace_back(prql_parser);
-  config.operator_extensions.emplace_back(make_unique<PrqlOperatorExtension>());
-  con.Commit();
+  config.parser_extensions.push_back(prql_parser);
+  config.operator_extensions.push_back(make_unique<PrqlOperatorExtension>());
 }
 
 void PrqlExtension::Load(DuckDB &db) { LoadInternal(*db.instance); }
-
-std::string PrqlExtension::Name() { return "prql"; }
 
 ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
                                       const std::string &query) {
