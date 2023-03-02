@@ -48,6 +48,8 @@ jobs:
         env:
           Rust_CARGO_TARGET: ${{ matrix.arch == 'osx_arm64' && 'aarch64-apple-darwin' || '' }}
           CMAKE_OSX_ARCHITECTURES: ${{ matrix.arch == 'osx_arm64' && 'arm64' || '' }}
+          # Static build on OS X breaks prql plugin, see https://github.com/duckdb/duckdb/issues/6521
+          EXTENSION_STATIC_BUILD: 0
         shell: bash
         run: make release
 

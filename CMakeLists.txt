@@ -11,11 +11,13 @@ add_library(${EXTENSION_NAME} STATIC ${EXTENSION_SOURCES})
 
 add_subdirectory(corrosion)
 
-corrosion_import_crate(MANIFEST_PATH prql/Cargo.toml CRATES prql-lib)
-target_link_libraries(${EXTENSION_NAME} PUBLIC "prql-lib-static")
+corrosion_import_crate(MANIFEST_PATH prql/Cargo.toml CRATES prql-lib CRATE_TYPES staticlib)
 
 set(PARAMETERS "-warnings")
 build_loadable_extension(${TARGET_NAME} ${PARAMETERS} ${EXTENSION_SOURCES})
+
+target_link_libraries(${EXTENSION_NAME} prql-lib-static)
+target_link_libraries(${TARGET_NAME}_loadable_extension prql-lib-static)
 
 install(
   TARGETS ${EXTENSION_NAME}

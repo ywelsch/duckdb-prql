@@ -34,6 +34,8 @@ jobs:
           git checkout ${{ matrix.duckdb_version }}
 
       - name: Build extension
+        env:
+          EXTENSION_STATIC_BUILD: 1
         run: |
           make release
           build/release/test/Release/unittest.exe

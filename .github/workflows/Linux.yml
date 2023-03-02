@@ -80,6 +80,7 @@ jobs:
       env:
         GEN: ninja
         STATIC_LIBCPP: 1
+        EXTENSION_STATIC_BUILD: 1
         CC: ${{ matrix.arch == 'linux_arm64' && 'aarch64-linux-gnu-gcc' || '' }}
         CXX: ${{ matrix.arch == 'linux_arm64' && 'aarch64-linux-gnu-g++' || '' }}
         Rust_CARGO_TARGET: ${{ matrix.arch == 'linux_arm64' && 'aarch64-unknown-linux-gnu' || '' }}
