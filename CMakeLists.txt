@@ -17,10 +17,7 @@ set(PARAMETERS "-warnings")
 build_loadable_extension(${TARGET_NAME} ${PARAMETERS} ${EXTENSION_SOURCES})
 
 target_link_libraries(${EXTENSION_NAME} prql-lib-static)
-
-if (NOT EXTENSION_STATIC_BUILD)
-  target_link_libraries(${TARGET_NAME}_loadable_extension prql-lib-static)
-endif()
+target_link_libraries(${TARGET_NAME}_loadable_extension prql-lib-static)
 
 install(
   TARGETS ${EXTENSION_NAME}
