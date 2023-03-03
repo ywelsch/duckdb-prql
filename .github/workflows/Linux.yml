@@ -16,12 +16,13 @@ jobs:
       matrix:
         # Add commits/tags to build against other DuckDB versions
         duckdb_version: [ '<submodule_version>' ]
-        arch: ['linux_amd64', 'linux_arm64', 'linux_amd64_gcc4']
+        # arch: ['linux_amd64', 'linux_arm64', 'linux_amd64_gcc4']
+        arch: ['linux_amd64', 'linux_amd64_gcc4'] # Disable linux_arm64 build for now
         include:
           - arch: 'linux_amd64'
             container: 'ubuntu:16.04'
-          - arch: 'linux_arm64'
-            container: 'ubuntu:18.04'
+          #- arch: 'linux_arm64'
+          #  container: 'ubuntu:18.04'
           - arch: 'linux_amd64_gcc4'
             container: 'quay.io/pypa/manylinux2014_x86_64'
     env:
