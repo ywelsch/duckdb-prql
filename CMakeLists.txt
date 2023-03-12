@@ -5,6 +5,7 @@ set(TARGET_NAME prql)
 set(EXTENSION_NAME ${TARGET_NAME}_extension)
 project(${TARGET_NAME})
 include_directories(src/include)
+include_directories(prql/prql-lib)
 
 set(EXTENSION_SOURCES src/prql_extension.cpp)
 add_library(${EXTENSION_NAME} STATIC ${EXTENSION_SOURCES})

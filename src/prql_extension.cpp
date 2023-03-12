@@ -1,6 +1,7 @@
 #define DUCKDB_EXTENSION_MAIN
 
 #include "prql_extension.hpp"
+
 #include "duckdb.hpp"
 #include "duckdb/common/exception.hpp"
 #include "duckdb/common/string_util.hpp"
@@ -8,7 +9,7 @@
 #include "duckdb/parser/statement/extension_statement.hpp"
 
 extern "C" {
-int to_sql(const char *prql_query, char *sql_query);
+  #include "libprql_lib.h"
 }
 
 namespace duckdb {
@@ -48,7 +49,11 @@ ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
   trimmed_string.insert(0, header);
 
   // run prql -> sql conversion
-  int conversion_status = to_sql(trimmed_string.c_str(), buffer.data());
+  Options options;
+  options.format = false;
+  options.target = const_cast<char*>("sql.duckdb");
+  options.signature_comment = false;
+  int conversion_status = compile(trimmed_string.c_str(), &options, buffer.data());
   // printf("%s", buf);
   auto sql_query_or_error = string(buffer.data());
   buffer.clear();
