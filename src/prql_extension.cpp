@@ -8,9 +8,9 @@
 #include "duckdb/parser/parser.hpp"
 #include "duckdb/parser/statement/extension_statement.hpp"
 
-extern "C" {
-  #include "libprql_lib.h"
-}
+#include "libprql_lib.hpp"
+
+#include <sstream>
 
 namespace duckdb {
 
@@ -25,17 +25,6 @@ void PrqlExtension::Load(DuckDB &db) { LoadInternal(*db.instance); }
 
 ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
                                       const std::string &query) {
-  // buffer length should not be less than 1K because we may get an error
-  // from the PRQL compiler with a very short query
-  int buffer_length = 1024;
-  // allocate a buffer 3 times the length of the PRQL query to store the
-  // generated SQL query
-  if (buffer_length < query.length() * 3) {
-    buffer_length = query.length() * 3;
-  }
-  std::vector<char> buffer;
-  buffer.reserve(buffer_length);
-
   // TODO: support multiple statements? Requires parser to split on ; (if it's
   // not part of a comment or string or ...)
 
@@ -53,12 +42,34 @@ ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
   options.format = false;
   options.target = const_cast<char*>("sql.duckdb");
   options.signature_comment = false;
-  int conversion_status = compile(trimmed_string.c_str(), &options, buffer.data());
-  // printf("%s", buf);
-  auto sql_query_or_error = string(buffer.data());
-  buffer.clear();
+  CompileResult compile_result = compile(trimmed_string.c_str(), &options);
+  bool failed = false;
+  std::stringstream ss;
+  for (int i = 0; i < compile_result.messages_len; i++) {
+      Message const* e = &compile_result.messages[i];
+      if (e->kind == MessageKind::Error) {
+        if (failed) {
+          // append new line for next failure
+          ss << "\n";
+        }
+        if (e->display != NULL) {
+          ss << *e->display;
+        } else if (e->code != NULL) {
+          ss << "[" << *e->code << "] Error: " << e->reason;
+        } else {
+          ss << "Error: " << e->reason;
+        }
+        failed = true;
+      }
+    }
+  if (!failed) {
+    ss << compile_result.output;
+  }
+  result_destroy(compile_result);
+  string sql_query_or_error = ss.str();
+  //printf("%s\n", sql_query_or_error.c_str());
 
-  if (conversion_status != 0) {
+  if (failed) {
     // sql_query_or_error contains error string
     // TODO: decide when to consider it a PRQL failure vs this parser extension
     //  not being responsible for parsing the statement.

@@ -21,3 +21,9 @@ from t1 | sort i
 # Trailing semicolon should work (e.g. used as part of CLI)
 statement ok
 from t1 | sort i;
+
+# Bad prql statement
+statement error
+from t1 | srt j
+----
+Parser Error: Error:
