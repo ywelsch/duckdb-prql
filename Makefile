@@ -37,7 +37,7 @@ EXTENSION_FLAGS=-DDUCKDB_OOT_EXTENSION_NAMES="prql" -DDUCKDB_OOT_EXTENSION_PRQL_
 
 pull:
 	git submodule init
-	git submodule update --recursive --remote
+	git submodule update --recursive
 
 clean:
 	rm -rf build
