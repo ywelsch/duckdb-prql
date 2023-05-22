@@ -18,7 +18,7 @@ static void LoadInternal(DatabaseInstance &instance) {
   auto &config = DBConfig::GetConfig(instance);
   PrqlParserExtension prql_parser;
   config.parser_extensions.push_back(prql_parser);
-  config.operator_extensions.push_back(make_unique<PrqlOperatorExtension>());
+  config.operator_extensions.push_back(make_uniq<PrqlOperatorExtension>());
 }
 
 void PrqlExtension::Load(DuckDB &db) { LoadInternal(*db.instance); }
@@ -78,16 +78,16 @@ ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
     //  (e.g. only those queries starting with "from"),
     //  or we could mandate that PRQL queries in duckdb are always prefixed with
     //  a certain string / symbol, e.g. |>, and then remove that here.
-    return ParserExtensionParseResult(move(sql_query_or_error));
+    return ParserExtensionParseResult(std::move(sql_query_or_error));
   }
 
   Parser parser; // TODO Pass (ClientContext.GetParserOptions());
-  parser.ParseQuery(move(sql_query_or_error));
+  parser.ParseQuery(std::move(sql_query_or_error));
   vector<unique_ptr<SQLStatement>> statements = std::move(parser.statements);
 
   return ParserExtensionParseResult(
-      make_unique_base<ParserExtensionParseData, PrqlParseData>(
-          move(statements[0])));
+      make_uniq_base<ParserExtensionParseData, PrqlParseData>(
+          std::move(statements[0])));
 }
 
 ParserExtensionPlanResult
@@ -96,7 +96,7 @@ prql_plan(ParserExtensionInfo *, ClientContext &context,
   // We stash away the ParserExtensionParseData before throwing an exception
   // here. This allows the planning to be picked up by prql_bind instead, but
   // we're not losing important context.
-  auto prql_state = make_shared<PrqlState>(move(parse_data));
+  auto prql_state = make_shared<PrqlState>(std::move(parse_data));
   context.registered_state["prql"] = prql_state;
   throw BinderException("Use prql_bind instead");
 }
