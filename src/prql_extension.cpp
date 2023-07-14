@@ -8,6 +8,8 @@
 #include "duckdb/parser/parser.hpp"
 #include "duckdb/parser/statement/extension_statement.hpp"
 
+#include "pg_functions.hpp"
+
 #include "libprql_lib.hpp"
 
 #include <sstream>
@@ -40,34 +42,34 @@ ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
   // run prql -> sql conversion
   Options options;
   options.format = false;
-  options.target = const_cast<char*>("sql.duckdb");
+  options.target = const_cast<char *>("sql.duckdb");
   options.signature_comment = false;
   CompileResult compile_result = compile(trimmed_string.c_str(), &options);
   bool failed = false;
   std::stringstream ss;
   for (int i = 0; i < compile_result.messages_len; i++) {
-      Message const* e = &compile_result.messages[i];
-      if (e->kind == MessageKind::Error) {
-        if (failed) {
-          // append new line for next failure
-          ss << "\n";
-        }
-        if (e->display != NULL) {
-          ss << *e->display;
-        } else if (e->code != NULL) {
-          ss << "[" << *e->code << "] Error: " << e->reason;
-        } else {
-          ss << "Error: " << e->reason;
-        }
-        failed = true;
+    Message const *e = &compile_result.messages[i];
+    if (e->kind == MessageKind::Error) {
+      if (failed) {
+        // append new line for next failure
+        ss << "\n";
       }
+      if (e->display != NULL) {
+        ss << *e->display;
+      } else if (e->code != NULL) {
+        ss << "[" << *e->code << "] Error: " << e->reason;
+      } else {
+        ss << "Error: " << e->reason;
+      }
+      failed = true;
     }
+  }
   if (!failed) {
     ss << compile_result.output;
   }
   result_destroy(compile_result);
   string sql_query_or_error = ss.str();
-  //printf("%s\n", sql_query_or_error.c_str());
+  // printf("%s\n", sql_query_or_error.c_str());
 
   if (failed) {
     // sql_query_or_error contains error string
@@ -81,9 +83,22 @@ ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
     return ParserExtensionParseResult(std::move(sql_query_or_error));
   }
 
-  Parser parser; // TODO Pass (ClientContext.GetParserOptions());
-  parser.ParseQuery(std::move(sql_query_or_error));
-  vector<unique_ptr<SQLStatement>> statements = std::move(parser.statements);
+  // Extension parsing keeps a PostgresParser open since v0.8.1 when calling
+  // extensions Unfortunately PostgresParser is not reentrant As a workaround,
+  // clean up the existing parser
+  duckdb_libpgquery::pg_parser_cleanup();
+
+  vector<unique_ptr<SQLStatement>> statements;
+  try {
+    Parser parser; // TODO Pass (ClientContext.GetParserOptions());
+    parser.ParseQuery(sql_query_or_error);
+    statements = std::move(parser.statements);
+  } catch (...) {
+    duckdb_libpgquery::pg_parser_init();
+    throw;
+  }
+
+  duckdb_libpgquery::pg_parser_init();
 
   return ParserExtensionParseResult(
       make_uniq_base<ParserExtensionParseData, PrqlParseData>(

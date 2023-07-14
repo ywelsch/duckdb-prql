@@ -6,13 +6,15 @@ set(EXTENSION_NAME ${TARGET_NAME}_extension)
 project(${TARGET_NAME})
 include_directories(src/include)
 include_directories(prql/bindings/prql-lib)
+include_directories(duckdb/third_party/libpg_query/include)
 
 set(EXTENSION_SOURCES src/prql_extension.cpp)
 add_library(${EXTENSION_NAME} STATIC ${EXTENSION_SOURCES})
 
 add_subdirectory(corrosion)
 
-corrosion_import_crate(MANIFEST_PATH prql/Cargo.toml CRATES prql-lib CRATE_TYPES staticlib)
+corrosion_import_crate(MANIFEST_PATH prql/Cargo.toml CRATES prql-lib
+                       CRATE_TYPES staticlib)
 
 set(PARAMETERS "-warnings")
 build_loadable_extension(${TARGET_NAME} ${PARAMETERS} ${EXTENSION_SOURCES})
