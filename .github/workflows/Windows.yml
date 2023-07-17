@@ -35,8 +35,6 @@ jobs:
 
       - name: Build extension
         shell: bash
-        env:
-          EXTENSION_STATIC_BUILD: 1
         run: |
           cd duckdb && python scripts/windows_ci.py && cd ..
           make release
