@@ -35,6 +35,10 @@ CLIENT_FLAGS :=
 # These flags will make DuckDB build the extension
 EXTENSION_FLAGS=-DDUCKDB_OOT_EXTENSION_NAMES="prql" -DDUCKDB_OOT_EXTENSION_PRQL_PATH="$(PROJ_DIR)" -DDUCKDB_OOT_EXTENSION_PRQL_SHOULD_LINK="TRUE" -DDUCKDB_OOT_EXTENSION_PRQL_INCLUDE_PATH="$(PROJ_DIR)src/include"
 
+ifeq ($(OS),Windows_NT)
+	BUILD_FLAGS:=${BUILD_FLAGS} -DCMAKE_GENERATOR_PLATFORM=x64
+endif
+
 pull:
 	git submodule init
 	git submodule update --recursive

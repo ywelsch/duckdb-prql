@@ -10,7 +10,7 @@ defaults:
 jobs:
   windows:
     name: Release
-    runs-on: windows-2019
+    runs-on: windows-latest
     strategy:
       matrix:
         # Add commits/tags to build against other DuckDB versions
