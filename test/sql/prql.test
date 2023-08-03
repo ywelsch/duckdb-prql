@@ -26,4 +26,4 @@ from t1 | sort i;
 statement error
 from t1 | srt j
 ----
-Parser Error: Error:
+Parser Error
