@@ -22,7 +22,7 @@ jobs:
           fetch-depth: 0
           submodules: 'true'
       
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v2
         with:
           python-version: '3.7'
 
@@ -34,13 +34,12 @@ jobs:
           git checkout ${{ matrix.duckdb_version }}
 
       - name: Build extension
-        shell: bash
+        env:
+          EXTENSION_STATIC_BUILD: 1
         run: |
-          cd duckdb && python scripts/windows_ci.py && cd ..
           make release
       
       - name: Test
-        shell: bash
         run: |
           build/release/test/Release/unittest.exe
 
