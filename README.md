@@ -14,35 +14,35 @@ As PRQL does not support DDL commands, we use SQL for defining our tables:
 INSTALL httpfs;
 LOAD httpfs;
 CREATE TABLE invoices AS SELECT * FROM
-  read_csv_auto('https://raw.githubusercontent.com/PRQL/prql/main/prql-compiler/tests/integration/data/chinook/invoices.csv');
+  read_csv_auto('https://raw.githubusercontent.com/PRQL/prql/main/crates/prql-compiler/tests/integration/data/chinook/invoices.csv');
 CREATE TABLE customers AS SELECT * FROM
-  read_csv_auto('https://raw.githubusercontent.com/PRQL/prql/main/prql-compiler/tests/integration/data/chinook/customers.csv');
+  read_csv_auto('https://raw.githubusercontent.com/PRQL/prql/main/crates/prql-compiler/tests/integration/data/chinook/customers.csv');
 ```
 
 and finally query using PRQL:
 
-```elm
+```sql
 from invoices
 filter invoice_date >= @1970-01-16
-derive [
+derive {
   transaction_fees = 0.8,
   income = total - transaction_fees
-]
+}
 filter income > 1
 group customer_id (
-  aggregate [
+  aggregate {
     average total,
     sum_income = sum income,
-    ct = count,
-  ]
+    ct = count total,
+  }
 )
-sort [-sum_income]
+sort {-sum_income}
 take 10
-join c=customers [==customer_id]
+join c=customers (==customer_id)
 derive name = f"{c.last_name}, {c.first_name}"
-select [
+select {
   c.customer_id, name, sum_income
-]
+}
 derive db_version = s"version()";
 ```
 
@@ -53,16 +53,16 @@ which returns:
 │ customer_id │        name         │ sum_income │ db_version │
 │    int64    │       varchar       │   double   │  varchar   │
 ├─────────────┼─────────────────────┼────────────┼────────────┤
-│           6 │ Holý, Helena        │      43.83 │ v0.7.0     │
-│           7 │ Gruber, Astrid      │      36.83 │ v0.7.0     │
-│          24 │ Ralston, Frank      │      37.83 │ v0.7.0     │
-│          25 │ Stevens, Victor     │      36.83 │ v0.7.0     │
-│          26 │ Cunningham, Richard │      41.83 │ v0.7.0     │
-│          28 │ Barnett, Julia      │      37.83 │ v0.7.0     │
-│          37 │ Zimmermann, Fynn    │      37.83 │ v0.7.0     │
-│          45 │ Kovács, Ladislav    │      39.83 │ v0.7.0     │
-│          46 │ O'Reilly, Hugh      │      39.83 │ v0.7.0     │
-│          57 │ Rojas, Luis         │      40.83 │ v0.7.0     │
+│           6 │ Holý, Helena        │      43.83 │ v0.8.1     │
+│           7 │ Gruber, Astrid      │      36.83 │ v0.8.1     │
+│          24 │ Ralston, Frank      │      37.83 │ v0.8.1     │
+│          25 │ Stevens, Victor     │      36.83 │ v0.8.1     │
+│          26 │ Cunningham, Richard │      41.83 │ v0.8.1     │
+│          28 │ Barnett, Julia      │      37.83 │ v0.8.1     │
+│          37 │ Zimmermann, Fynn    │      37.83 │ v0.8.1     │
+│          45 │ Kovács, Ladislav    │      39.83 │ v0.8.1     │
+│          46 │ O'Reilly, Hugh      │      39.83 │ v0.8.1     │
+│          57 │ Rojas, Luis         │      40.83 │ v0.8.1     │
 ├─────────────┴─────────────────────┴────────────┴────────────┤
 │ 10 rows                                           4 columns │
 └─────────────────────────────────────────────────────────────┘
