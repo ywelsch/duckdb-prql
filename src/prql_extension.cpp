@@ -8,8 +8,6 @@
 #include "duckdb/parser/parser.hpp"
 #include "duckdb/parser/statement/extension_statement.hpp"
 
-#include "pg_functions.hpp"
-
 #include "libprql_lib.hpp"
 
 #include <sstream>
@@ -83,22 +81,9 @@ ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
     return ParserExtensionParseResult(std::move(sql_query_or_error));
   }
 
-  // Extension parsing keeps a PostgresParser open since v0.8.1 when calling
-  // extensions Unfortunately PostgresParser is not reentrant As a workaround,
-  // clean up the existing parser
-  duckdb_libpgquery::pg_parser_cleanup();
-
-  vector<unique_ptr<SQLStatement>> statements;
-  try {
-    Parser parser; // TODO Pass (ClientContext.GetParserOptions());
-    parser.ParseQuery(sql_query_or_error);
-    statements = std::move(parser.statements);
-  } catch (...) {
-    duckdb_libpgquery::pg_parser_init();
-    throw;
-  }
-
-  duckdb_libpgquery::pg_parser_init();
+  Parser parser; // TODO Pass (ClientContext.GetParserOptions());
+  parser.ParseQuery(sql_query_or_error);
+  auto statements = std::move(parser.statements);
 
   return ParserExtensionParseResult(
       make_uniq_base<ParserExtensionParseData, PrqlParseData>(

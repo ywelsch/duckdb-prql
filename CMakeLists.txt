@@ -6,7 +6,6 @@ set(EXTENSION_NAME ${TARGET_NAME}_extension)
 project(${TARGET_NAME})
 include_directories(src/include)
 include_directories(prql/bindings/prql-lib)
-include_directories(duckdb/third_party/libpg_query/include)
 
 set(EXTENSION_SOURCES src/prql_extension.cpp)
 add_library(${EXTENSION_NAME} STATIC ${EXTENSION_SOURCES})
