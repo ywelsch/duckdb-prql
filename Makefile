@@ -39,11 +39,6 @@ ifeq (${EXTENSION_STATIC_BUILD}, 1)
 	BUILD_FLAGS:=${BUILD_FLAGS} -DEXTENSION_STATIC_BUILD=1
 endif
 
-CLIENT_FLAGS=-DDUCKDB_EXTENSION_${EXTENSION_NAME}_SHOULD_LINK=1
-
-# These flags will make DuckDB build the extension
-EXTENSION_FLAGS=-DDUCKDB_OOT_EXTENSION_NAMES="prql" -DDUCKDB_OOT_EXTENSION_PRQL_PATH="$(PROJ_DIR)" -DDUCKDB_OOT_EXTENSION_PRQL_SHOULD_LINK="TRUE" -DDUCKDB_OOT_EXTENSION_PRQL_INCLUDE_PATH="$(PROJ_DIR)src/include"
-
 pull:
 	git submodule init
 	git submodule update --recursive
@@ -53,16 +48,19 @@ clean:
 	rm -rf testext
 	cd duckdb && make clean
 
-# Main build
+#### Main build
+# For regular CLI build, we link the quack extension directly into the DuckDB executable
+CLIENT_FLAGS=-DDUCKDB_EXTENSION_${EXTENSION_NAME}_SHOULD_LINK=1
+
 debug:
 	mkdir -p  build/debug && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(EXTENSION_FLAGS) ${CLIENT_FLAGS} -DCMAKE_BUILD_TYPE=Debug ${BUILD_FLAGS} -S ./duckdb/ -B build/debug && \
+	cmake $(GENERATOR) $(BUILD_FLAGS) $(CLIENT_FLAGS) -DCMAKE_BUILD_TYPE=Debug -S ./duckdb/ -B build/debug && \
 	cmake --build build/debug --config Debug
 
 release:
 	mkdir -p build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(EXTENSION_FLAGS) ${CLIENT_FLAGS} -DCMAKE_BUILD_TYPE=Release ${BUILD_FLAGS} -S ./duckdb/ -B build/release && \
-	cmake --build build/release --config Release
+	cmake $(GENERATOR) $(BUILD_FLAGS)  $(CLIENT_FLAGS)  -DCMAKE_BUILD_TYPE=RelWithDebInfo -S ./duckdb/ -B build/release && \
+	cmake --build build/release --config RelWithDebInfo
 
 # Main tests
 test: test_release
