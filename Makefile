@@ -59,8 +59,8 @@ debug:
 
 release:
 	mkdir -p build/release && \
-	cmake $(GENERATOR) $(BUILD_FLAGS)  $(CLIENT_FLAGS)  -DCMAKE_BUILD_TYPE=RelWithDebInfo -S ./duckdb/ -B build/release && \
-	cmake --build build/release --config RelWithDebInfo
+	cmake $(GENERATOR) $(BUILD_FLAGS)  $(CLIENT_FLAGS)  -DCMAKE_BUILD_TYPE=Release -S ./duckdb/ -B build/release && \
+	cmake --build build/release --config Release
 
 # Main tests
 test: test_release
