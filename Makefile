@@ -24,16 +24,20 @@ ifeq ($(GEN),ninja)
 	FORCE_COLOR=-DFORCE_COLORED_OUTPUT=1
 endif
 
-BUILD_FLAGS=${STATIC_LIBCPP} ${CMAKE_OSX_ARCHITECTURES_FLAG} ${Rust_CARGO_TARGET_FLAG}
+#### Configuration for this extension
+EXTENSION_NAME=PRQL
+EXTENSION_FLAGS=\
+-DDUCKDB_EXTENSION_NAMES="prql" \
+-DDUCKDB_EXTENSION_${EXTENSION_NAME}_PATH="$(PROJ_DIR)" \
+-DDUCKDB_EXTENSION_${EXTENSION_NAME}_LOAD_TESTS=1 \
+-DDUCKDB_EXTENSION_${EXTENSION_NAME}_INCLUDE_PATH="$(PROJ_DIR)src/include" \
+-DDUCKDB_EXTENSION_${EXTENSION_NAME}_TEST_PATH="$(PROJ_DIR)test/sql"
+
+BUILD_FLAGS=${STATIC_LIBCPP} $(EXTENSION_FLAGS) ${CMAKE_OSX_ARCHITECTURES_FLAG} ${Rust_CARGO_TARGET_FLAG}
 
 ifeq (${EXTENSION_STATIC_BUILD}, 1)
 	BUILD_FLAGS:=${BUILD_FLAGS} -DEXTENSION_STATIC_BUILD=1
 endif
-
-CLIENT_FLAGS :=
-
-# These flags will make DuckDB build the extension
-EXTENSION_FLAGS=-DDUCKDB_OOT_EXTENSION_NAMES="prql" -DDUCKDB_OOT_EXTENSION_PRQL_PATH="$(PROJ_DIR)" -DDUCKDB_OOT_EXTENSION_PRQL_SHOULD_LINK="TRUE" -DDUCKDB_OOT_EXTENSION_PRQL_INCLUDE_PATH="$(PROJ_DIR)src/include"
 
 pull:
 	git submodule init
@@ -44,15 +48,18 @@ clean:
 	rm -rf testext
 	cd duckdb && make clean
 
-# Main build
+#### Main build
+# For regular CLI build, we link the quack extension directly into the DuckDB executable
+CLIENT_FLAGS=-DDUCKDB_EXTENSION_${EXTENSION_NAME}_SHOULD_LINK=1
+
 debug:
 	mkdir -p  build/debug && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(EXTENSION_FLAGS) ${CLIENT_FLAGS} -DCMAKE_BUILD_TYPE=Debug ${BUILD_FLAGS} -S ./duckdb/ -B build/debug && \
+	cmake $(GENERATOR) $(BUILD_FLAGS) $(CLIENT_FLAGS) -DCMAKE_BUILD_TYPE=Debug -S ./duckdb/ -B build/debug && \
 	cmake --build build/debug --config Debug
 
 release:
 	mkdir -p build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(EXTENSION_FLAGS) ${CLIENT_FLAGS} -DCMAKE_BUILD_TYPE=Release ${BUILD_FLAGS} -S ./duckdb/ -B build/release && \
+	cmake $(GENERATOR) $(BUILD_FLAGS)  $(CLIENT_FLAGS)  -DCMAKE_BUILD_TYPE=Release -S ./duckdb/ -B build/release && \
 	cmake --build build/release --config Release
 
 # Main tests

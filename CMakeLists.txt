@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 2.8.12)
 set(TARGET_NAME prql)
 
 set(EXTENSION_NAME ${TARGET_NAME}_extension)
+set(LOADABLE_EXTENSION_NAME ${TARGET_NAME}_loadable_extension)
+
 project(${TARGET_NAME})
 include_directories(src/include)
 include_directories(prql/bindings/prql-lib)
@@ -19,7 +21,7 @@ set(PARAMETERS "-warnings")
 build_loadable_extension(${TARGET_NAME} ${PARAMETERS} ${EXTENSION_SOURCES})
 
 target_link_libraries(${EXTENSION_NAME} prql-lib-static)
-target_link_libraries(${TARGET_NAME}_loadable_extension prql-lib-static)
+target_link_libraries(${LOADABLE_EXTENSION_NAME} prql-lib-static)
 
 install(
   TARGETS ${EXTENSION_NAME}

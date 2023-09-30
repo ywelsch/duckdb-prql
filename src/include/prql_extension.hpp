@@ -19,8 +19,7 @@ struct PrqlOperatorExtension : public OperatorExtension {
   std::string GetName() override { return "prql"; }
 
   unique_ptr<LogicalExtensionOperator>
-  Deserialize(LogicalDeserializationState &state,
-              FieldReader &reader) override {
+  Deserialize(Deserializer &deserializer) override {
     throw InternalException("prql operator should not be serialized");
   }
 };
