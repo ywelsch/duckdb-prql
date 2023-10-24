@@ -14,9 +14,9 @@ As PRQL does not support DDL commands, we use SQL for defining our tables:
 INSTALL httpfs;
 LOAD httpfs;
 CREATE TABLE invoices AS SELECT * FROM
-  read_csv_auto('https://raw.githubusercontent.com/PRQL/prql/main/crates/prql-compiler/tests/integration/data/chinook/invoices.csv');
+  read_csv_auto('https://raw.githubusercontent.com/PRQL/prql/0.8.0/prql-compiler/tests/integration/data/chinook/invoices.csv');
 CREATE TABLE customers AS SELECT * FROM
-  read_csv_auto('https://raw.githubusercontent.com/PRQL/prql/main/crates/prql-compiler/tests/integration/data/chinook/customers.csv');
+  read_csv_auto('https://raw.githubusercontent.com/PRQL/prql/0.8.0/prql-compiler/tests/integration/data/chinook/customers.csv');
 ```
 
 and finally query using PRQL:
@@ -85,7 +85,7 @@ con = duckdb.connect(':memory:', config={'allow_unsigned_extensions' : 'true'})
 
 A custom extension repository then needs to be defined as follows:
 ```sql
-SET custom_extension_repository='welsch.lu/duckdb/prql/latest';
+SET custom_extension_repository='http://welsch.lu/duckdb/prql/latest';
 ```
 Note that the `/latest` path will provide the latest extension version available for the current version of DuckDB.
 A given extension version can be selected by using that version as last path element instead.
