@@ -8,7 +8,7 @@
 #include "duckdb/parser/parser.hpp"
 #include "duckdb/parser/statement/extension_statement.hpp"
 
-#include "libprql_lib.hpp"
+#include "libprqlc.hpp"
 
 #include <sstream>
 
@@ -38,16 +38,16 @@ ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
   trimmed_string.insert(0, header);
 
   // run prql -> sql conversion
-  prql::Options options;
+  prqlc::Options options;
   options.format = false;
   options.target = const_cast<char *>("sql.duckdb");
   options.signature_comment = false;
-  prql::CompileResult compile_result = compile(trimmed_string.c_str(), &options);
+  prqlc::CompileResult compile_result = compile(trimmed_string.c_str(), &options);
   bool failed = false;
   std::stringstream ss;
   for (int i = 0; i < compile_result.messages_len; i++) {
-    prql::Message const *e = &compile_result.messages[i];
-    if (e->kind == prql::MessageKind::Error) {
+    prqlc::Message const *e = &compile_result.messages[i];
+    if (e->kind == prqlc::MessageKind::Error) {
       if (failed) {
         // append new line for next failure
         ss << "\n";
@@ -65,7 +65,7 @@ ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
   if (!failed) {
     ss << compile_result.output;
   }
-  prql::result_destroy(compile_result);
+  prqlc::result_destroy(compile_result);
   string sql_query_or_error = ss.str();
   // printf("%s\n", sql_query_or_error.c_str());
 
