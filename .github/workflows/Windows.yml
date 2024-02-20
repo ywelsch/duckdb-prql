@@ -15,6 +15,9 @@ jobs:
       matrix:
         # Add commits/tags to build against other DuckDB versions
         duckdb_version: [ '<submodule_version>' ]
+        arch: ['windows_amd64']
+    env:
+      DUCKDB_PLATFORM: ${{ matrix.arch }}
 
     steps:
       - uses: actions/checkout@v3
@@ -42,7 +45,7 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          name: windows_amd64-extensions
+          name: ${{matrix.arch}}-extensions
           path: |
             build/release/extension/prql/prql.duckdb_extension
 
@@ -66,7 +69,7 @@ jobs:
           if [[ "$SSH_HOST" == "" ]] ; then
             echo 'No key set, skipping'
           elif [[ "$GITHUB_REF" =~ ^(refs/tags/v.+)$ ]] ; then
-            ./scripts/extension-upload.sh prql ${{ github.ref_name }} $DUCKDB_VERSION windows_amd64 true 
+            ./scripts/extension-upload.sh prql ${{ github.ref_name }} $DUCKDB_VERSION ${{matrix.arch}} true 
           elif [[ "$GITHUB_REF" =~ ^(refs/heads/main)$ ]] ; then
-            ./scripts/extension-upload.sh prql `git log -1 --format=%h` $DUCKDB_VERSION windows_amd64 false 
+            ./scripts/extension-upload.sh prql `git log -1 --format=%h` $DUCKDB_VERSION ${{matrix.arch}} false 
           fi
