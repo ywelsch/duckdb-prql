@@ -19,6 +19,7 @@ jobs:
         arch: ['osx_amd64', 'osx_arm64']
     env:
       GEN: ninja
+      DUCKDB_PLATFORM: ${{ matrix.arch }}
 
     steps:
       - uses: actions/checkout@v3
