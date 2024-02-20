@@ -8,7 +8,7 @@
 #include "duckdb/parser/parser.hpp"
 #include "duckdb/parser/statement/extension_statement.hpp"
 
-#include "libprqlc.hpp"
+#include "prqlc.hpp"
 
 #include <sstream>
 
@@ -34,41 +34,41 @@ ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
     trimmed_string.pop_back();
   }
 
-  string header = string("prql target:sql.duckdb\n");
-  trimmed_string.insert(0, header);
-
   // run prql -> sql conversion
   prqlc::Options options;
   options.format = false;
   options.target = const_cast<char *>("sql.duckdb");
   options.signature_comment = false;
-  prqlc::CompileResult compile_result = compile(trimmed_string.c_str(), &options);
   bool failed = false;
-  std::stringstream ss;
-  for (int i = 0; i < compile_result.messages_len; i++) {
-    prqlc::Message const *e = &compile_result.messages[i];
-    if (e->kind == prqlc::MessageKind::Error) {
-      if (failed) {
-        // append new line for next failure
-        ss << "\n";
+  string sql_query_or_error;
+  {
+    prqlc::CompileResult compile_result = compile(trimmed_string.c_str(), &options);
+    std::stringstream ss;
+  
+    for (int i = 0; i < compile_result.messages_len; i++) {
+      prqlc::Message const *e = &compile_result.messages[i];
+      if (e->kind == prqlc::MessageKind::Error) {
+        if (failed) {
+          // append new line for next failure
+          ss << "\n";
+        }
+        if (e->display != NULL) {
+          ss << *e->display;
+        } else if (e->code != NULL) {
+          ss << "[" << *e->code << "] Error: " << e->reason;
+        } else {
+          ss << "Error: " << e->reason;
+        }
+        failed = true;
       }
-      if (e->display != NULL) {
-        ss << *e->display;
-      } else if (e->code != NULL) {
-        ss << "[" << *e->code << "] Error: " << e->reason;
-      } else {
-        ss << "Error: " << e->reason;
-      }
-      failed = true;
     }
+    if (!failed) {
+      ss << compile_result.output;
+    }
+    sql_query_or_error = ss.str();
+    prqlc::result_destroy(compile_result);
   }
-  if (!failed) {
-    ss << compile_result.output;
-  }
-  prqlc::result_destroy(compile_result);
-  string sql_query_or_error = ss.str();
-  // printf("%s\n", sql_query_or_error.c_str());
-
+  
   if (failed) {
     // sql_query_or_error contains error string
     // TODO: decide when to consider it a PRQL failure vs this parser extension
@@ -80,6 +80,15 @@ ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
     //  a certain string / symbol, e.g. |>, and then remove that here.
     return ParserExtensionParseResult(std::move(sql_query_or_error));
   }
+
+  // if (sql_query_or_error.find("WITH table_0 AS") != std::string::npos) {
+  //   sql_query_or_error = "WITH table_0 AS (SELECT customer_id, total - 0.8 AS _expr_0, total FROM invoices WHERE invoice_date >= DATE '1970-01-16') SELECT customer_id, AVG(total), COALESCE(SUM(_expr_0), 0) AS sum_income, COUNT(*) AS ct FROM table_0 WHERE _expr_0 > 1 GROUP BY customer_id";
+  //   sql_query_or_error = "WITH table_0 AS (SELECT customer_id, total FROM invoices WHERE invoice_date < today()) SELECT customer_id, AVG(total) FROM table_0 GROUP BY customer_id";
+  //   // sql_query_or_error = "WITH table_0 AS (SELECT customer_id, total FROM invoices WHERE invoice_date < today()) SELECT customer_id FROM table_0";
+  // }
+
+
+  // printf("%s\n", sql_query_or_error.c_str());
 
   Parser parser; // TODO Pass (ClientContext.GetParserOptions());
   parser.ParseQuery(sql_query_or_error);
@@ -113,7 +122,8 @@ BoundStatement prql_bind(ClientContext &context, Binder &binder,
         auto prql_binder = Binder::CreateBinder(context);
         auto prql_parse_data =
             dynamic_cast<PrqlParseData *>(prql_state->parse_data.get());
-        return prql_binder->Bind(*(prql_parse_data->statement));
+        auto statement = prql_binder->Bind(*(prql_parse_data->statement));
+        return statement;
       }
       throw BinderException("Registered state not found");
     }

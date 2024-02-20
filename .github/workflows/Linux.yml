@@ -27,6 +27,7 @@ jobs:
           #  container: 'quay.io/pypa/manylinux2014_x86_64'
     env:
       GEN: ninja
+      DUCKDB_PLATFORM: ${{ matrix.arch }}
 
     steps:
     - name: Install required ubuntu packages
@@ -100,7 +101,7 @@ jobs:
           build/release/extension/prql/prql.duckdb_extension
 
     - name: Install SSH Key
-      uses: shimataro/ssh-key-action@v2
+      uses: shimataro/ssh-key-action@v2.6.1
       with:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
