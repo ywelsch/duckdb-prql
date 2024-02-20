@@ -10,13 +10,19 @@ defaults:
 jobs:
   macos:
     name: MacOS Release
-    runs-on: macos-14
     strategy:
       matrix:
+        os: [macos-latest, macos-14]
         # Add commits/tags to build against other DuckDB versions
         duckdb_version: [ '<submodule_version>' ]
         # Universal build (OSX_BUILD_UNIVERSAL: 1) not possible, see: https://github.com/corrosion-rs/corrosion/issues/115
-        arch: ['osx_arm64']
+        arch: ['osx_amd64', 'osx_arm64']
+        include:
+          - os: 'macos-latest'
+            arch: 'osx_amd64'
+          - os: 'macos-14'
+            arch: 'osx_arm64'
+    runs-on: ${{ matrix.os }}
     env:
       GEN: ninja
       DUCKDB_PLATFORM: ${{ matrix.arch }}
@@ -32,7 +38,7 @@ jobs:
       
       - uses: actions/setup-python@v2
         with:
-          python-version: '3.7'
+          python-version: '3.12'
 
       - name: Checkout DuckDB to version
         if: ${{ matrix.duckdb_version != '<submodule_version>'}}
