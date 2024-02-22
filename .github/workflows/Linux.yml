@@ -42,7 +42,7 @@ jobs:
     - name: Install required CentOS packages
       if: ${{ matrix.arch == 'linux_amd64_gcc4' }}
       run: |
-        yum –y install openssh-clients
+        yum –y install openssh openssh-clients
 
     - name: Install Rust
       run: curl https://sh.rustup.rs -sSf | bash -s -- -y
