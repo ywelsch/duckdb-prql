@@ -28,6 +28,9 @@ jobs:
       with:
         version: 'latest'
 
+    - name: Validate emsdk
+      run: which emmake
+
     - name: Install Rust
       run: curl https://sh.rustup.rs -sSf | bash -s -- -y
     
