@@ -39,11 +39,6 @@ jobs:
         apt-get update -y -qq
         apt-get install -y -qq ninja-build make gcc-multilib g++-multilib libssl-dev wget openjdk-8-jdk zip maven unixodbc-dev libc6-dev-i386 lib32readline6-dev libssl-dev libcurl4-gnutls-dev libexpat1-dev gettext unzip build-essential checkinstall libffi-dev curl libz-dev openssh-client
 
-    - name: Install required CentOS packages
-      if: ${{ matrix.arch == 'linux_amd64_gcc4' }}
-      run: |
-        yum –y install openssh-clients
-
     - name: Install Rust
       run: curl https://sh.rustup.rs -sSf | bash -s -- -y
     
@@ -81,6 +76,7 @@ jobs:
       uses: ./duckdb/.github/actions/manylinux_2014_setup
       with:
         openssl: 0
+        ssh: 1
 
     - if: ${{ matrix.arch == 'linux_amd64' || matrix.arch == 'linux_arm64' }}
       uses: ./duckdb/.github/actions/ubuntu_18_setup
