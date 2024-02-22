@@ -24,7 +24,7 @@ jobs:
         apt-get update -y -qq
         apt-get install -y -qq ninja-build make gcc-multilib g++-multilib libssl-dev wget openjdk-8-jdk zip maven unixodbc-dev libc6-dev-i386 lib32readline6-dev libssl-dev libcurl4-gnutls-dev libexpat1-dev gettext unzip build-essential checkinstall libffi-dev curl libz-dev openssh-client
 
-    - uses: mymindstorm/setup-emsdk@v12
+    - uses: mymindstorm/setup-emsdk@v14
       with:
         version: 'latest'
 
@@ -55,7 +55,5 @@ jobs:
       
       # Build extension
     - name: Build extension
-      env:
-        GEN: ninja
       run: |
         make wasm_mvp
