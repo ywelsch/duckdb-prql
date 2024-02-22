@@ -11,6 +11,7 @@ jobs:
   linux:
     name: WASM Release
     runs-on: ubuntu-latest
+    container: 'ubuntu:18.04'
     env:
       GEN: ninja
 
