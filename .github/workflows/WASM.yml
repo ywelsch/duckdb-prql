@@ -28,8 +28,8 @@ jobs:
           version: 'latest'
 
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | bash -s -- -y
-      
+        run: curl https://sh.rustup.rs -sSf | bash -s -- -y --default-toolchain nightly
+
       - name: Install Rust Cross-compilation targets
         run: $HOME/.cargo/bin/rustup target add wasm32-unknown-emscripten
 
