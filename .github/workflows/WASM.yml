@@ -24,10 +24,10 @@ jobs:
           version: 'latest'
 
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | bash -s -- -y --default-toolchain nightly
+        run: curl https://sh.rustup.rs -sSf | bash -s -- -y
 
       - name: Install Rust Cross-compilation targets
-        run: $HOME/.cargo/bin/rustup target add nightly-wasm32-unknown-emscripten
+        run: $HOME/.cargo/bin/rustup target add wasm32-unknown-emscripten
 
       - uses: actions/checkout@v3
         with:
