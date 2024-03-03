@@ -18,8 +18,8 @@ endif()
 
 add_subdirectory(corrosion)
 
-corrosion_import_crate(MANIFEST_PATH prql/prqlc/bindings/prqlc-c/Cargo.toml CRATES prqlc-c
-                       CRATE_TYPES staticlib)
+corrosion_import_crate(MANIFEST_PATH prql/prqlc/bindings/prqlc-c/Cargo.toml
+                       CRATES prqlc-c CRATE_TYPES staticlib)
 
 set(PARAMETERS "-warnings")
 build_loadable_extension(${TARGET_NAME} ${PARAMETERS} ${EXTENSION_SOURCES})

@@ -42,9 +42,10 @@ ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
   bool failed = false;
   string sql_query_or_error;
   {
-    prqlc::CompileResult compile_result = compile(trimmed_string.c_str(), &options);
+    prqlc::CompileResult compile_result =
+        compile(trimmed_string.c_str(), &options);
     std::stringstream ss;
-  
+
     for (int i = 0; i < compile_result.messages_len; i++) {
       prqlc::Message const *e = &compile_result.messages[i];
       if (e->kind == prqlc::MessageKind::Error) {
@@ -68,7 +69,7 @@ ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
     sql_query_or_error = ss.str();
     prqlc::result_destroy(compile_result);
   }
-  
+
   if (failed) {
     // sql_query_or_error contains error string
     // TODO: decide when to consider it a PRQL failure vs this parser extension
@@ -80,13 +81,6 @@ ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
     //  a certain string / symbol, e.g. |>, and then remove that here.
     return ParserExtensionParseResult(std::move(sql_query_or_error));
   }
-
-  // if (sql_query_or_error.find("WITH table_0 AS") != std::string::npos) {
-  //   sql_query_or_error = "WITH table_0 AS (SELECT customer_id, total - 0.8 AS _expr_0, total FROM invoices WHERE invoice_date >= DATE '1970-01-16') SELECT customer_id, AVG(total), COALESCE(SUM(_expr_0), 0) AS sum_income, COUNT(*) AS ct FROM table_0 WHERE _expr_0 > 1 GROUP BY customer_id";
-  //   sql_query_or_error = "WITH table_0 AS (SELECT customer_id, total FROM invoices WHERE invoice_date < today()) SELECT customer_id, AVG(total) FROM table_0 GROUP BY customer_id";
-  //   // sql_query_or_error = "WITH table_0 AS (SELECT customer_id, total FROM invoices WHERE invoice_date < today()) SELECT customer_id FROM table_0";
-  // }
-
 
   // printf("%s\n", sql_query_or_error.c_str());
 
@@ -119,7 +113,7 @@ BoundStatement prql_bind(ClientContext &context, Binder &binder,
       auto lookup = context.registered_state.find("prql");
       if (lookup != context.registered_state.end()) {
         auto prql_state = (PrqlState *)lookup->second.get();
-        auto prql_binder = Binder::CreateBinder(context);
+        auto prql_binder = Binder::CreateBinder(context, &binder);
         auto prql_parse_data =
             dynamic_cast<PrqlParseData *>(prql_state->parse_data.get());
         auto statement = prql_binder->Bind(*(prql_parse_data->statement));
