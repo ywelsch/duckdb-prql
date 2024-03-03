@@ -27,3 +27,20 @@ statement error
 from t1 | srt j
 ----
 Parser Error
+
+statement ok
+INSTALL httpfs;
+
+statement ok
+LOAD httpfs;
+
+statement ok
+CREATE TABLE invoices AS SELECT * FROM
+  read_csv_auto('https://raw.githubusercontent.com/PRQL/prql/0.8.0/prql-compiler/tests/integration/data/chinook/invoices.csv');
+
+statement ok
+CREATE TABLE customers AS SELECT * FROM
+  read_csv_auto('https://raw.githubusercontent.com/PRQL/prql/0.8.0/prql-compiler/tests/integration/data/chinook/customers.csv');
+
+statement ok
+from invoices | filter invoice_date >= @1970-01-16 | derive { transaction_fees = 0.8, income = total - transaction_fees } | filter income > 1 | group customer_id ( aggregate { average total, sum_income = sum income, ct = count total, }) | sort {-sum_income} | take 10 | join c=customers (==customer_id) | derive name = f"{c.last_name}, {c.first_name}" | select { c.customer_id, name, sum_income } | derive db_version = s"version()";
