@@ -33,15 +33,6 @@ jobs:
       - name: Install Rust Cross-compilation targets
         run: $HOME/.cargo/bin/rustup target add wasm32-unknown-emscripten
 
-      - name: Install Git 2.18.5
-        run: |
-          wget https://github.com/git/git/archive/refs/tags/v2.18.5.tar.gz
-          tar xvf v2.18.5.tar.gz
-          cd git-2.18.5
-          make
-          make prefix=/usr install
-          git --version
-
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
