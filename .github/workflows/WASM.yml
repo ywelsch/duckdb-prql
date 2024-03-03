@@ -8,17 +8,13 @@ defaults:
     shell: bash
 
 jobs:
-  linux:
+  wasm:
     name: WASM Release
     runs-on: 'macos-14'
     env:
-      GEN: ninja
       DUCKDB_PLATFORM: 'osx_arm64'
     
     steps:
-      - name: Install Ninja
-        run: brew install ninja
-      
       - uses: actions/setup-python@v2
         with:
           python-version: '3.12'
