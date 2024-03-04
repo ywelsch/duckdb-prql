@@ -38,3 +38,5 @@ jobs:
       - name: Build extension
         run: |
           make wasm_mvp
+          make wasm_eh
+          make wasm_threads
