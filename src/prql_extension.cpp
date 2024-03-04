@@ -10,6 +10,8 @@
 
 #include "prqlc.hpp"
 
+#include "re2/re2.h"
+
 #include <sstream>
 
 namespace duckdb {
@@ -23,6 +25,37 @@ static void LoadInternal(DatabaseInstance &instance) {
 
 void PrqlExtension::Load(DuckDB &db) { LoadInternal(*db.instance); }
 
+void transform_block(const std::string &block, std::stringstream &ss,
+                     bool &failed) {
+  prqlc::Options options;
+  options.format = false;
+  options.target = const_cast<char *>("sql.duckdb");
+  options.signature_comment = false;
+  prqlc::CompileResult compile_result = compile(block.c_str(), &options);
+
+  for (int i = 0; i < compile_result.messages_len; i++) {
+    prqlc::Message const *e = &compile_result.messages[i];
+    if (e->kind == prqlc::MessageKind::Error) {
+      if (failed) {
+        // append new line for next failure
+        ss << "\n";
+      }
+      if (e->display != NULL) {
+        ss << *e->display;
+      } else if (e->code != NULL) {
+        ss << "[" << *e->code << "] Error: " << e->reason;
+      } else {
+        ss << "Error: " << e->reason;
+      }
+      failed = true;
+    }
+  }
+  if (!failed) {
+    ss << compile_result.output;
+  }
+  prqlc::result_destroy(compile_result);
+}
+
 ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
                                       const std::string &query) {
   // TODO: support multiple statements? Requires parser to split on ; (if it's
@@ -34,41 +67,33 @@ ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
     trimmed_string.pop_back();
   }
 
-  // run prql -> sql conversion
-  prqlc::Options options;
-  options.format = false;
-  options.target = const_cast<char *>("sql.duckdb");
-  options.signature_comment = false;
-  bool failed = false;
-  string sql_query_or_error;
-  {
-    prqlc::CompileResult compile_result =
-        compile(trimmed_string.c_str(), &options);
-    std::stringstream ss;
+  // Identify PRQL blocks, delimited by "(|" and "|)"
+  RE2::Options options;
+  options.set_dot_nl(true);
+  RE2 block_re("(.*?)[(][|](.*?)[|][)]", options);
+  duckdb_re2::StringPiece input(trimmed_string);
+  std::string pre_block_command;
+  std::string block_command;
 
-    for (int i = 0; i < compile_result.messages_len; i++) {
-      prqlc::Message const *e = &compile_result.messages[i];
-      if (e->kind == prqlc::MessageKind::Error) {
-        if (failed) {
-          // append new line for next failure
-          ss << "\n";
-        }
-        if (e->display != NULL) {
-          ss << *e->display;
-        } else if (e->code != NULL) {
-          ss << "[" << *e->code << "] Error: " << e->reason;
-        } else {
-          ss << "Error: " << e->reason;
-        }
-        failed = true;
-      }
-    }
-    if (!failed) {
-      ss << compile_result.output;
-    }
-    sql_query_or_error = ss.str();
-    prqlc::result_destroy(compile_result);
+  bool failed = false;
+  bool block_found = false;
+  std::stringstream ss;
+
+  while (RE2::Consume(&input, block_re, &pre_block_command, &block_command)) {
+    block_found = true;
+    ss << pre_block_command;
+    ss << "(";
+    transform_block(block_command, ss, failed);
+    ss << ")";
   }
+  std::string post_block_command;
+  post_block_command = input.ToString();
+  if (block_found) {
+    ss << post_block_command;
+  } else {
+    transform_block(post_block_command, ss, failed);
+  }
+  auto sql_query_or_error = ss.str();
 
   if (failed) {
     // sql_query_or_error contains error string
