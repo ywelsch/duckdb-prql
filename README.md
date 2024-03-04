@@ -87,8 +87,8 @@ or for example:
 ```sql
 WITH invoices_remote_data AS (FROM read_csv_auto('https://raw.githubusercontent.com/PRQL/prql/0.8.0/prql-compiler/tests/integration/data/chinook/invoices.csv'))
 (|
-  from invoices_remote_data |
-  filter invoice_date >= @1970-01-16 |
+  from invoices_remote_data
+  filter invoice_date >= @1970-01-16
   derive { transaction_fees = 0.8, income = total - transaction_fees }
 |);
 ```
