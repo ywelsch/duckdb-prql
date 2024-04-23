@@ -44,3 +44,23 @@ CREATE TABLE customers AS SELECT * FROM
 
 statement ok
 from invoices | filter invoice_date >= @1970-01-16 | derive { transaction_fees = 0.8, income = total - transaction_fees } | filter income > 1 | group customer_id ( aggregate { average total, sum_income = sum income, ct = count total, }) | sort {-sum_income} | take 10 | join c=customers (==customer_id) | derive name = f"{c.last_name}, {c.first_name}" | select { c.customer_id, name, sum_income } | derive db_version = s"version()";
+
+# scoped transforms
+statement ok
+create table t2 as (| from invoices | filter invoice_date >= @1970-01-16 | derive { transaction_fees = 0.8, income = total - transaction_fees } | filter income > 1 | group customer_id ( aggregate { average total, sum_income = sum income, ct = count total, }) | sort {-sum_income} | take 10 | join c=customers (==customer_id) | derive name = f"{c.last_name}, {c.first_name}" | select { c.customer_id, name, sum_income } |);
+
+statement ok
+from t2 | derive db_version = s"version()";
+
+statement ok
+create view invoices_filtered as (| from invoices | filter invoice_date >= @1970-01-16 | derive { transaction_fees = 0.8, income = total - transaction_fees } | filter income > 1 |);
+
+statement ok
+from invoices_filtered | group customer_id ( aggregate { average total, sum_income = sum income, ct = count total, }) | sort {-sum_income} | take 10 | join c=customers (==customer_id) | derive name = f"{c.last_name}, {c.first_name}" | select { c.customer_id, name, sum_income };
+
+statement ok
+WITH inv AS (FROM read_csv_auto('https://raw.githubusercontent.com/PRQL/prql/0.8.0/prql-compiler/tests/integration/data/chinook/invoices.csv')) (| from inv | filter invoice_date >= @1970-01-16 | derive { transaction_fees = 0.8, income = total - transaction_fees } |);
+
+# multiple scoped transforms
+statement ok
+with x as (| from t1 | derive db_version = s"version()" |), y as (| from t1 | derive db_version = s"version()" |) from x union from y;

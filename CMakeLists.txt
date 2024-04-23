@@ -24,7 +24,12 @@ corrosion_import_crate(MANIFEST_PATH prql/prqlc/bindings/prqlc-c/Cargo.toml
 set(PARAMETERS "-warnings")
 build_loadable_extension(${TARGET_NAME} ${PARAMETERS} ${EXTENSION_SOURCES})
 
-target_link_libraries(${EXTENSION_NAME} prqlc-c-static)
+if(APPLE)
+  target_link_libraries(${EXTENSION_NAME} prqlc-c-static
+                        "-framework CoreFoundation")
+else()
+  target_link_libraries(${EXTENSION_NAME} prqlc-c-static)
+endif()
 target_link_libraries(${LOADABLE_EXTENSION_NAME} prqlc-c-static)
 
 install(
