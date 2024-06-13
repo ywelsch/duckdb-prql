@@ -124,7 +124,7 @@ prql_plan(ParserExtensionInfo *, ClientContext &context,
   // We stash away the ParserExtensionParseData before throwing an exception
   // here. This allows the planning to be picked up by prql_bind instead, but
   // we're not losing important context.
-  auto prql_state = make_shared<PrqlState>(std::move(parse_data));
+  auto prql_state = make_shared_ptr<PrqlState>(std::move(parse_data));
   context.registered_state["prql"] = prql_state;
   throw BinderException("Use prql_bind instead");
 }
