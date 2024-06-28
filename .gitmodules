@@ -7,6 +7,3 @@
 [submodule "corrosion"]
 	path = corrosion
 	url = https://github.com/corrosion-rs/corrosion.git
-[submodule "duckdb-wasm"]
-	path = duckdb-wasm
-	url = https://github.com/duckdb/duckdb-wasm
