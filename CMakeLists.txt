@@ -25,12 +25,12 @@ set(PARAMETERS "-warnings")
 build_loadable_extension(${TARGET_NAME} ${PARAMETERS} ${EXTENSION_SOURCES})
 
 if(APPLE)
-  target_link_libraries(${EXTENSION_NAME} prqlc-c-static
+  target_link_libraries(${EXTENSION_NAME} prqlc_c-static
                         "-framework CoreFoundation")
 else()
-  target_link_libraries(${EXTENSION_NAME} prqlc-c-static)
+  target_link_libraries(${EXTENSION_NAME} prqlc_c-static)
 endif()
-target_link_libraries(${LOADABLE_EXTENSION_NAME} prqlc-c-static)
+target_link_libraries(${LOADABLE_EXTENSION_NAME} prqlc_c-static)
 
 install(
   TARGETS ${EXTENSION_NAME}
