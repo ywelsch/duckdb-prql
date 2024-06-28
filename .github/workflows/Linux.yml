@@ -17,16 +17,17 @@ jobs:
         # Add commits/tags to build against other DuckDB versions
         duckdb_version: [ '<submodule_version>' ]
         # arch: ['linux_amd64', 'linux_arm64', 'linux_amd64_gcc4']
-        arch: ['linux_amd64'] # Disable linux_arm64 and linux_amd64_gcc4 build for now
+        arch: ['linux_amd64', 'linux_amd64_gcc4'] # Disable linux_arm64 build for now
         include:
           - arch: 'linux_amd64'
             container: 'ubuntu:18.04'
+          - arch: 'linux_amd64_gcc4'
+            container: 'quay.io/pypa/manylinux2014_x86_64'
           #- arch: 'linux_arm64'
           #  container: 'ubuntu:18.04'
-          #- arch: 'linux_amd64_gcc4'
-          #  container: 'quay.io/pypa/manylinux2014_x86_64'
     env:
       GEN: ninja
+      DUCKDB_PLATFORM: ${{ matrix.arch }}
 
     steps:
     - name: Install required ubuntu packages
@@ -66,10 +67,16 @@ jobs:
         cd duckdb
         git checkout ${{ matrix.duckdb_version }}
 
+    - name: Patch manylinux_2014_setup
+      if: ${{ matrix.arch == 'linux_amd64_gcc4' }}
+      run: |
+        sed -i 's@scripts/@duckdb/scripts/@g' ./duckdb/.github/actions/manylinux_2014_setup/action.yml
+
     - if: ${{ matrix.arch == 'linux_amd64_gcc4' }}
       uses: ./duckdb/.github/actions/manylinux_2014_setup
       with:
         openssl: 0
+        ssh: 1
 
     - if: ${{ matrix.arch == 'linux_amd64' || matrix.arch == 'linux_arm64' }}
       uses: ./duckdb/.github/actions/ubuntu_18_setup
@@ -100,7 +107,7 @@ jobs:
           build/release/extension/prql/prql.duckdb_extension
 
     - name: Install SSH Key
-      uses: shimataro/ssh-key-action@v2
+      uses: shimataro/ssh-key-action@v2.6.1
       with:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}

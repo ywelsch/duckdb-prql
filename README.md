@@ -68,6 +68,31 @@ which returns:
 └─────────────────────────────────────────────────────────────┘
 ```
 
+PRQL can also be integrated with regular SQL expressions, by using a special syntax to delimit start and end of PRQL syntax:
+
+```sql
+create view invoices_filtered as (|
+  from invoices
+  filter invoice_date >= @1970-01-16
+  derive {
+    transaction_fees = 0.8,
+    income = total - transaction_fees
+  }
+  filter income > 1
+|);
+```
+
+or for example:
+
+```sql
+WITH invoices_remote_data AS (FROM read_csv_auto('https://raw.githubusercontent.com/PRQL/prql/0.8.0/prql-compiler/tests/integration/data/chinook/invoices.csv'))
+(|
+  from invoices_remote_data
+  filter invoice_date >= @1970-01-16
+  derive { transaction_fees = 0.8, income = total - transaction_fees }
+|);
+```
+
 ## Install
 
 To install the PRQL extension, DuckDB needs to be launched with the `allow_unsigned_extensions` option set to true.

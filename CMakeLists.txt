@@ -7,21 +7,26 @@ set(LOADABLE_EXTENSION_NAME ${TARGET_NAME}_loadable_extension)
 
 project(${TARGET_NAME})
 include_directories(src/include)
-include_directories(prql/prqlc/bindings/clib)
+include_directories(prql/prqlc/bindings/prqlc-c)
 
 set(EXTENSION_SOURCES src/prql_extension.cpp)
 add_library(${EXTENSION_NAME} STATIC ${EXTENSION_SOURCES})
 
 add_subdirectory(corrosion)
 
-corrosion_import_crate(MANIFEST_PATH prql/prqlc/bindings/clib/Cargo.toml CRATES prqlc-clib
-                       CRATE_TYPES staticlib)
+corrosion_import_crate(MANIFEST_PATH prql/prqlc/bindings/prqlc-c/Cargo.toml
+                       CRATES prqlc-c CRATE_TYPES staticlib)
 
 set(PARAMETERS "-warnings")
 build_loadable_extension(${TARGET_NAME} ${PARAMETERS} ${EXTENSION_SOURCES})
 
-target_link_libraries(${EXTENSION_NAME} prqlc-static)
-target_link_libraries(${LOADABLE_EXTENSION_NAME} prqlc-static)
+if(APPLE)
+  target_link_libraries(${EXTENSION_NAME} prqlc_c-static
+                        "-framework CoreFoundation")
+else()
+  target_link_libraries(${EXTENSION_NAME} prqlc_c-static)
+endif()
+target_link_libraries(${LOADABLE_EXTENSION_NAME} prqlc_c-static)
 
 install(
   TARGETS ${EXTENSION_NAME}

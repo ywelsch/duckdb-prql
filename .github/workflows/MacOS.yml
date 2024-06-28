@@ -10,15 +10,16 @@ defaults:
 jobs:
   macos:
     name: MacOS Release
-    runs-on: macos-latest
     strategy:
       matrix:
         # Add commits/tags to build against other DuckDB versions
         duckdb_version: [ '<submodule_version>' ]
         # Universal build (OSX_BUILD_UNIVERSAL: 1) not possible, see: https://github.com/corrosion-rs/corrosion/issues/115
         arch: ['osx_amd64', 'osx_arm64']
+    runs-on: ${{ matrix.arch == 'osx_amd64' && 'macos-latest' || 'macos-14' }}
     env:
       GEN: ninja
+      DUCKDB_PLATFORM: ${{ matrix.arch }}
 
     steps:
       - uses: actions/checkout@v3
@@ -29,13 +30,9 @@ jobs:
       - name: Install Ninja
         run: brew install ninja
       
-      - name: Install Rust Cross-compilation targets
-        if: ${{ matrix.arch == 'osx_arm64' }}
-        run: rustup target add aarch64-apple-darwin
-      
       - uses: actions/setup-python@v2
         with:
-          python-version: '3.7'
+          python-version: '3.12'
 
       - name: Checkout DuckDB to version
         if: ${{ matrix.duckdb_version != '<submodule_version>'}}
@@ -46,15 +43,12 @@ jobs:
         # Build extension
       - name: Build extension
         env:
-          Rust_CARGO_TARGET: ${{ matrix.arch == 'osx_arm64' && 'aarch64-apple-darwin' || '' }}
-          CMAKE_OSX_ARCHITECTURES: ${{ matrix.arch == 'osx_arm64' && 'arm64' || '' }}
           # Static build on OS X breaks prql plugin, see https://github.com/duckdb/duckdb/issues/6521
-          EXTENSION_STATIC_BUILD: 0
+          EXTENSION_STATIC_BUILD: 1
         shell: bash
         run: make release
 
       - name: Build extension
-        if: ${{ matrix.arch != 'osx_arm64'}}
         run: make test
 
       - uses: actions/upload-artifact@v2
@@ -64,7 +58,7 @@ jobs:
             build/release/extension/prql/prql.duckdb_extension
 
       - name: Install SSH Key
-        uses: shimataro/ssh-key-action@v2
+        uses: shimataro/ssh-key-action@v2.6.1
         with:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}

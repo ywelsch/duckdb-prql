@@ -45,6 +45,8 @@ struct PrqlParseData : ParserExtensionParseData {
         statement->Copy());
   }
 
+  virtual string ToString() const override { return "PrqlParseData"; }
+
   PrqlParseData(unique_ptr<SQLStatement> statement)
       : statement(std::move(statement)) {}
 };

@@ -8,7 +8,9 @@
 #include "duckdb/parser/parser.hpp"
 #include "duckdb/parser/statement/extension_statement.hpp"
 
-#include "libprqlc.hpp"
+#include "prqlc.hpp"
+
+#include "re2/re2.h"
 
 #include <sstream>
 
@@ -23,28 +25,14 @@ static void LoadInternal(DatabaseInstance &instance) {
 
 void PrqlExtension::Load(DuckDB &db) { LoadInternal(*db.instance); }
 
-ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
-                                      const std::string &query) {
-  // TODO: support multiple statements? Requires parser to split on ; (if it's
-  // not part of a comment or string or ...)
-
-  // remove trailing semicolon
-  string trimmed_string = query;
-  if (trimmed_string[trimmed_string.length() - 1] == ';') {
-    trimmed_string.pop_back();
-  }
-
-  string header = string("prql target:sql.duckdb\n");
-  trimmed_string.insert(0, header);
-
-  // run prql -> sql conversion
+void transform_block(const std::string &block, std::stringstream &ss,
+                     bool &failed) {
   prqlc::Options options;
   options.format = false;
   options.target = const_cast<char *>("sql.duckdb");
   options.signature_comment = false;
-  prqlc::CompileResult compile_result = compile(trimmed_string.c_str(), &options);
-  bool failed = false;
-  std::stringstream ss;
+  prqlc::CompileResult compile_result = compile(block.c_str(), &options);
+
   for (int i = 0; i < compile_result.messages_len; i++) {
     prqlc::Message const *e = &compile_result.messages[i];
     if (e->kind == prqlc::MessageKind::Error) {
@@ -66,8 +54,46 @@ ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
     ss << compile_result.output;
   }
   prqlc::result_destroy(compile_result);
-  string sql_query_or_error = ss.str();
-  // printf("%s\n", sql_query_or_error.c_str());
+}
+
+ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
+                                      const std::string &query) {
+  // TODO: support multiple statements? Requires parser to split on ; (if it's
+  // not part of a comment or string or ...)
+
+  // remove trailing semicolon
+  string trimmed_string = query;
+  if (trimmed_string[trimmed_string.length() - 1] == ';') {
+    trimmed_string.pop_back();
+  }
+
+  // Identify PRQL blocks, delimited by "(|" and "|)"
+  RE2::Options options;
+  options.set_dot_nl(true);
+  RE2 block_re("(.*?)[(][|](.*?)[|][)]", options);
+  duckdb_re2::StringPiece input(trimmed_string);
+  std::string pre_block_command;
+  std::string block_command;
+
+  bool failed = false;
+  bool block_found = false;
+  std::stringstream ss;
+
+  while (RE2::Consume(&input, block_re, &pre_block_command, &block_command)) {
+    block_found = true;
+    ss << pre_block_command;
+    ss << "(";
+    transform_block(block_command, ss, failed);
+    ss << ")";
+  }
+  std::string post_block_command;
+  post_block_command = input.ToString();
+  if (block_found) {
+    ss << post_block_command;
+  } else {
+    transform_block(post_block_command, ss, failed);
+  }
+  auto sql_query_or_error = ss.str();
 
   if (failed) {
     // sql_query_or_error contains error string
@@ -80,6 +106,8 @@ ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
     //  a certain string / symbol, e.g. |>, and then remove that here.
     return ParserExtensionParseResult(std::move(sql_query_or_error));
   }
+
+  // printf("%s\n", sql_query_or_error.c_str());
 
   Parser parser; // TODO Pass (ClientContext.GetParserOptions());
   parser.ParseQuery(sql_query_or_error);
@@ -96,7 +124,7 @@ prql_plan(ParserExtensionInfo *, ClientContext &context,
   // We stash away the ParserExtensionParseData before throwing an exception
   // here. This allows the planning to be picked up by prql_bind instead, but
   // we're not losing important context.
-  auto prql_state = make_shared<PrqlState>(std::move(parse_data));
+  auto prql_state = make_shared_ptr<PrqlState>(std::move(parse_data));
   context.registered_state["prql"] = prql_state;
   throw BinderException("Use prql_bind instead");
 }
@@ -110,10 +138,11 @@ BoundStatement prql_bind(ClientContext &context, Binder &binder,
       auto lookup = context.registered_state.find("prql");
       if (lookup != context.registered_state.end()) {
         auto prql_state = (PrqlState *)lookup->second.get();
-        auto prql_binder = Binder::CreateBinder(context);
+        auto prql_binder = Binder::CreateBinder(context, &binder);
         auto prql_parse_data =
             dynamic_cast<PrqlParseData *>(prql_state->parse_data.get());
-        return prql_binder->Bind(*(prql_parse_data->statement));
+        auto statement = prql_binder->Bind(*(prql_parse_data->statement));
+        return statement;
       }
       throw BinderException("Registered state not found");
     }
