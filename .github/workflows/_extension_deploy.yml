@@ -104,6 +104,7 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
           UPLOAD_BASE_PATH: ${{ secrets.UPLOAD_BASE_PATH }}
+        if: ${{!startsWith(matrix.duckdb, 'wasm') }}
         run: |
           git config --global --add safe.directory '*'
           cd duckdb
