@@ -114,7 +114,7 @@ jobs:
           if [[ "$SSH_HOST" == "" ]] ; then
             echo 'No key set, skipping'
           elif [[ "$GITHUB_REF" =~ ^(refs/tags/v.+)$ ]] ; then
-            ./scripts/extension-upload.sh prql ${{ github.ref_name }} $DUCKDB_VERSION ${{matrix.arch}} true
+            ./scripts/extension-upload.sh prql ${{ github.ref_name }} $DUCKDB_VERSION ${{matrix.duckdb_arch}} true
           elif [[ "$GITHUB_REF" =~ ^(refs/heads/main)$ ]] ; then
-            ./scripts/extension-upload.sh prql `git log -1 --format=%h` $DUCKDB_VERSION ${{matrix.arch}} false
+            ./scripts/extension-upload.sh prql `git log -1 --format=%h` $DUCKDB_VERSION ${{matrix.duckdb_arch}} false
           fi
