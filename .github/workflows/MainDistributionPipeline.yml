@@ -19,7 +19,7 @@ jobs:
       duckdb_version: v1.0.0
       extension_name: prql
       enable_rust: true
-      exclude_archs: 'windows_amd64_rtools;linux_arm64'
+      exclude_archs: ''
 
   duckdb-stable-deploy:
     name: Deploy extension binaries
@@ -29,5 +29,5 @@ jobs:
     with:
       extension_name: prql
       duckdb_version: v1.0.0
-      exclude_archs: 'windows_amd64_rtools;linux_arm64'
+      exclude_archs: ''
       deploy_latest: ${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' }}
