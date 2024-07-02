@@ -92,6 +92,9 @@ jobs:
 
       - name: Install SSH Key
         uses: shimataro/ssh-key-action@v2.6.1
+        env:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+        if: ${{ env.key != '' }}
         with:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
