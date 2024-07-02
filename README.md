@@ -1,5 +1,3 @@
-[![Linux](https://github.com/ywelsch/duckdb-prql/actions/workflows/Linux.yml/badge.svg)](https://github.com/ywelsch/duckdb-prql/actions/workflows/Linux.yml) [![MacOS](https://github.com/ywelsch/duckdb-prql/actions/workflows/MacOS.yml/badge.svg)](https://github.com/ywelsch/duckdb-prql/actions/workflows/MacOS.yml) [![Windows](https://github.com/ywelsch/duckdb-prql/actions/workflows/Windows.yml/badge.svg)](https://github.com/ywelsch/duckdb-prql/actions/workflows/Windows.yml)
-
 # PRQL as a DuckDB extension
 
 Extension to [DuckDB](https://duckdb.org) that allows running [PRQL](https://prql-lang.org) commands directly within DuckDB.
