@@ -9,7 +9,7 @@
 
 set -e
 
-ext="build/release/extension/$1/$1.duckdb_extension"
+ext="/tmp/extension/$1.duckdb_extension"
 
 # compress extension binary
 gzip < $ext > "$1.duckdb_extension.gz"
