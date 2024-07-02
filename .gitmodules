@@ -7,3 +7,6 @@
 [submodule "corrosion"]
 	path = corrosion
 	url = https://github.com/corrosion-rs/corrosion.git
+[submodule "extension-ci-tools"]
+	path = extension-ci-tools
+	url = git@github.com:duckdb/extension-ci-tools.git
