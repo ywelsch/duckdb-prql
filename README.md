@@ -4,7 +4,7 @@ Extension to [DuckDB](https://duckdb.org) that allows running [PRQL](https://prq
 
 ## Running the extension
 
-The PRQL extension is a DuckDB community extension, and can simply be installed with
+The PRQL extension is a [DuckDB community extension](https://community-extensions.duckdb.org/extensions/prql.html), and can simply be installed with
 
 ```sql
 install prql from community;
@@ -16,7 +16,7 @@ and subsequently loaded with
 load prql;
 ```
 
-After loading the extension you can directly query DuckDB using PRQL, the Piped Relational Query Language. Both PRQL and SQL commands are supported within the same shell.
+After loading the extension you can directly query DuckDB using PRQL, the [Piped Relational Query Language](https://prql-lang.org). Both PRQL and SQL commands are supported within the same shell.
 
 Let's query using PRQL:
 
