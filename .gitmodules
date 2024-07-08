@@ -6,7 +6,7 @@
 	url = https://github.com/PRQL/prql
 [submodule "corrosion"]
 	path = corrosion
-	url = https://github.com/corrosion-rs/corrosion.git
+	url = https://github.com/corrosion-rs/corrosion
 [submodule "extension-ci-tools"]
 	path = extension-ci-tools
-	url = git@github.com:duckdb/extension-ci-tools.git
+	url = https://github.com/duckdb/extension-ci-tools
