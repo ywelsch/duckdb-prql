@@ -125,7 +125,8 @@ prql_plan(ParserExtensionInfo *, ClientContext &context,
   // here. This allows the planning to be picked up by prql_bind instead, but
   // we're not losing important context.
   auto prql_state = make_shared_ptr<PrqlState>(std::move(parse_data));
-  context.registered_state["prql"] = prql_state;
+  context.registered_state->Remove("prql");
+  context.registered_state->Insert("prql", prql_state);
   throw BinderException("Use prql_bind instead");
 }
 
@@ -135,9 +136,9 @@ BoundStatement prql_bind(ClientContext &context, Binder &binder,
   case StatementType::EXTENSION_STATEMENT: {
     auto &extension_statement = dynamic_cast<ExtensionStatement &>(statement);
     if (extension_statement.extension.parse_function == prql_parse) {
-      auto lookup = context.registered_state.find("prql");
-      if (lookup != context.registered_state.end()) {
-        auto prql_state = (PrqlState *)lookup->second.get();
+      auto lookup = context.registered_state->Get<PrqlState>("prql");
+      if (lookup) {
+        auto prql_state = (PrqlState *)lookup.get();
         auto prql_binder = Binder::CreateBinder(context, &binder);
         auto prql_parse_data =
             dynamic_cast<PrqlParseData *>(prql_state->parse_data.get());
