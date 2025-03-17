@@ -1,4 +1,13 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.5)
+
+set(CORROSION_VERBOSE_OUTPUT ON)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED 1)
+
+execute_process(
+    COMMAND rustup target list --installed
+    OUTPUT_VARIABLE RUST_TARGETS
+)
 
 # Propagate arch to Rust build for CI Copied from
 # rustyconover/duckdb-lindel-extension
