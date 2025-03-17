@@ -42,6 +42,9 @@ if("${Rust_CARGO_TARGET}" STREQUAL "")
   message(FATAL_ERROR "Failed to detect the correct platform")
 endif()
 
+message(STATUS "RUST_TARGETS: ${RUST_TARGETS}")
+message(STATUS "Rust_CARGO_TARGET: ${Rust_CARGO_TARGET}")
+
 set(TARGET_NAME prql)
 
 set(EXTENSION_NAME ${TARGET_NAME}_extension)
