@@ -79,7 +79,7 @@ if(APPLE)
 else()
   target_link_libraries(${EXTENSION_NAME} prqlc_c-static)
 endif()
-target_link_libraries(${LOADABLE_EXTENSION_NAME} prqlc_c-static)
+target_link_libraries(${LOADABLE_EXTENSION_NAME} prqlc_c)
 
 install(
   TARGETS ${EXTENSION_NAME}
