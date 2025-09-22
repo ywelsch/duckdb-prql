@@ -16,14 +16,15 @@
 
 namespace duckdb {
 
-static void LoadInternal(DatabaseInstance &instance) {
+static void LoadInternal(ExtensionLoader &loader) {
+  auto &instance = loader.GetDatabaseInstance();
   auto &config = DBConfig::GetConfig(instance);
   PrqlParserExtension prql_parser;
   config.parser_extensions.push_back(prql_parser);
   config.operator_extensions.push_back(make_uniq<PrqlOperatorExtension>());
 }
 
-void PrqlExtension::Load(DuckDB &db) { LoadInternal(*db.instance); }
+void PrqlExtension::Load(ExtensionLoader &loader) { LoadInternal(loader); }
 
 void transform_block(const std::string &block, std::stringstream &ss,
                      bool &failed) {
@@ -158,13 +159,7 @@ BoundStatement prql_bind(ClientContext &context, Binder &binder,
 
 extern "C" {
 
-DUCKDB_EXTENSION_API void prql_init(duckdb::DatabaseInstance &db) {
-  LoadInternal(db);
-}
-
-DUCKDB_EXTENSION_API const char *prql_version() {
-  return duckdb::DuckDB::LibraryVersion();
-}
+DUCKDB_CPP_EXTENSION_ENTRY(prql, loader) { LoadInternal(loader); }
 }
 
 #ifndef DUCKDB_EXTENSION_MAIN

@@ -1,6 +1,6 @@
 # name: test/sql/prql.test
 # description: test prql extension
-# group: [prql]
+# group: [sql]
 
 statement ok
 CREATE TABLE t1(i INTEGER);
