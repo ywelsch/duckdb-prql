@@ -24,6 +24,7 @@ jobs:
 
   duckdb-stable-deploy:
     name: Deploy extension binaries
+    if: false
     needs: duckdb-stable-build
     uses: ./.github/workflows/_extension_deploy.yml
     secrets: inherit
