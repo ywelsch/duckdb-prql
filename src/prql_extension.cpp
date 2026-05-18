@@ -20,8 +20,8 @@ static void LoadInternal(ExtensionLoader &loader) {
   auto &instance = loader.GetDatabaseInstance();
   auto &config = DBConfig::GetConfig(instance);
   PrqlParserExtension prql_parser;
-  config.parser_extensions.push_back(prql_parser);
-  config.operator_extensions.push_back(make_uniq<PrqlOperatorExtension>());
+  ParserExtension::Register(config, prql_parser);
+  OperatorExtension::Register(config, make_shared_ptr<PrqlOperatorExtension>());
 }
 
 void PrqlExtension::Load(ExtensionLoader &loader) { LoadInternal(loader); }

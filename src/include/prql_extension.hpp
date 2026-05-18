@@ -1,6 +1,8 @@
 #pragma once
 
 #include "duckdb.hpp"
+#include "duckdb/parser/parser_extension.hpp"
+#include "duckdb/planner/operator_extension.hpp"
 
 namespace duckdb {
 
