@@ -27,7 +27,7 @@ struct PrqlOperatorExtension : public OperatorExtension {
 };
 
 ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
-                                      const std::string &query);
+                                      const vector<SimpleToken> &tokens);
 
 ParserExtensionPlanResult prql_plan(ParserExtensionInfo *, ClientContext &,
                                     unique_ptr<ParserExtensionParseData>);
@@ -39,28 +39,26 @@ struct PrqlParserExtension : public ParserExtension {
   }
 };
 
+// Marker for statements claimed by prql_parse. The parser extension only gets
+// to see tokens (without whitespace), so the PRQL is compiled in prql_bind,
+// based on the statement's source text.
 struct PrqlParseData : ParserExtensionParseData {
-  unique_ptr<SQLStatement> statement;
-
   unique_ptr<ParserExtensionParseData> Copy() const override {
-    return make_uniq_base<ParserExtensionParseData, PrqlParseData>(
-        statement->Copy());
+    return make_uniq_base<ParserExtensionParseData, PrqlParseData>();
   }
 
   virtual string ToString() const override { return "PrqlParseData"; }
-
-  PrqlParseData(unique_ptr<SQLStatement> statement)
-      : statement(std::move(statement)) {}
 };
 
+// Keeps the SQL statement compiled from PRQL alive until the end of the query
 class PrqlState : public ClientContextState {
 public:
-  explicit PrqlState(unique_ptr<ParserExtensionParseData> parse_data)
-      : parse_data(std::move(parse_data)) {}
+  explicit PrqlState(unique_ptr<SQLStatement> statement)
+      : statement(std::move(statement)) {}
 
-  void QueryEnd() override { parse_data.reset(); }
+  void QueryEnd() override { statement.reset(); }
 
-  unique_ptr<ParserExtensionParseData> parse_data;
+  unique_ptr<SQLStatement> statement;
 };
 
 } // namespace duckdb

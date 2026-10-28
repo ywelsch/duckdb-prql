@@ -14,12 +14,12 @@ concurrency:
 jobs:
   duckdb-stable-build:
     name: Build extension binaries
-    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@v1.5.3
+    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@v2.0-cyanoptera
     with:
-      duckdb_version: v1.5.3
-      ci_tools_version: v1.5.3
+      duckdb_version: v2.0.0
+      ci_tools_version: v2.0-cyanoptera
       extension_name: prql
-      enable_rust: true
+      extra_toolchains: 'rust'
       exclude_archs: 'linux_amd64_musl'
 
   duckdb-stable-deploy:
@@ -30,6 +30,6 @@ jobs:
     secrets: inherit
     with:
       extension_name: prql
-      duckdb_version: v1.5.3
+      duckdb_version: v2.0.0
       exclude_archs: 'linux_amd64_musl'
       deploy_latest: ${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' }}

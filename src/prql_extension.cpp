@@ -57,14 +57,15 @@ void transform_block(const std::string &block, std::stringstream &ss,
   prqlc::result_destroy(compile_result);
 }
 
-ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
-                                      const std::string &query) {
-  // TODO: support multiple statements? Requires parser to split on ; (if it's
-  // not part of a comment or string or ...)
-
+// Compiles a PRQL query, or a SQL query with embedded PRQL blocks, to SQL.
+// Returns false if compilation failed, in which case sql_query_or_error
+// contains the error message.
+static bool compile_prql(const std::string &query,
+                         std::string &sql_query_or_error) {
   // remove trailing semicolon
   string trimmed_string = query;
-  if (trimmed_string[trimmed_string.length() - 1] == ';') {
+  StringUtil::RTrim(trimmed_string);
+  if (!trimmed_string.empty() && trimmed_string.back() == ';') {
     trimmed_string.pop_back();
   }
 
@@ -94,40 +95,44 @@ ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
   } else {
     transform_block(post_block_command, ss, failed);
   }
-  auto sql_query_or_error = ss.str();
+  sql_query_or_error = ss.str();
+  return !failed;
+}
 
-  if (failed) {
-    // sql_query_or_error contains error string
-    // TODO: decide when to consider it a PRQL failure vs this parser extension
-    //  not being responsible for parsing the statement.
-    //  For now, we consider any malformed statement a PRQL one.
-    //  In the future we can try using a couple of basic heuristics to classify
-    //  (e.g. only those queries starting with "from"),
-    //  or we could mandate that PRQL queries in duckdb are always prefixed with
-    //  a certain string / symbol, e.g. |>, and then remove that here.
-    return ParserExtensionParseResult(std::move(sql_query_or_error));
+ParserExtensionParseResult prql_parse(ParserExtensionInfo *,
+                                      const vector<SimpleToken> &tokens) {
+  // The tokens don't retain whitespace, which is significant in PRQL, so we
+  // only claim the tokens of the statement here and compile the PRQL in
+  // prql_bind instead, where the statement's source text is available.
+  // TODO: decide when to consider it a PRQL statement vs this parser extension
+  //  not being responsible for parsing the statement.
+  //  For now, we consider any malformed statement a PRQL one.
+  //  In the future we can try using a couple of basic heuristics to classify
+  //  (e.g. only those queries starting with "from"),
+  //  or we could mandate that PRQL queries in duckdb are always prefixed with
+  //  a certain string / symbol, e.g. |>, and then remove that here.
+  idx_t end = 0;
+  while (end < tokens.size() && tokens[end].type != TokenType::TERMINATOR &&
+         tokens[end].type != TokenType::END_OF_INPUT) {
+    end++;
   }
-
-  // printf("%s\n", sql_query_or_error.c_str());
-
-  Parser parser; // TODO Pass (ClientContext.GetParserOptions());
-  parser.ParseQuery(sql_query_or_error);
-  auto statements = std::move(parser.statements);
-
-  return ParserExtensionParseResult(
-      make_uniq_base<ParserExtensionParseData, PrqlParseData>(
-          std::move(statements[0])));
+  if (end == 0) {
+    // empty statement
+    return ParserExtensionParseResult();
+  }
+  ParserExtensionParseResult result(
+      make_uniq_base<ParserExtensionParseData, PrqlParseData>());
+  // also claim the terminator, just like a regular statement
+  result.consumed_tokens =
+      NumericCast<int64_t>(MinValue<idx_t>(end + 1, tokens.size()));
+  return result;
 }
 
 ParserExtensionPlanResult
 prql_plan(ParserExtensionInfo *, ClientContext &context,
           unique_ptr<ParserExtensionParseData> parse_data) {
-  // We stash away the ParserExtensionParseData before throwing an exception
-  // here. This allows the planning to be picked up by prql_bind instead, but
-  // we're not losing important context.
-  auto prql_state = make_shared_ptr<PrqlState>(std::move(parse_data));
-  context.registered_state->Remove("prql");
-  context.registered_state->Insert("prql", prql_state);
+  // Throwing an exception here allows the planning to be picked up by
+  // prql_bind instead, which has access to the statement's source text.
   throw BinderException("Use prql_bind instead");
 }
 
@@ -137,16 +142,24 @@ BoundStatement prql_bind(ClientContext &context, Binder &binder,
   case StatementType::EXTENSION_STATEMENT: {
     auto &extension_statement = dynamic_cast<ExtensionStatement &>(statement);
     if (extension_statement.extension.parse_function == prql_parse) {
-      auto lookup = context.registered_state->Get<PrqlState>("prql");
-      if (lookup) {
-        auto prql_state = (PrqlState *)lookup.get();
-        auto prql_binder = Binder::CreateBinder(context, &binder);
-        auto prql_parse_data =
-            dynamic_cast<PrqlParseData *>(prql_state->parse_data.get());
-        auto statement = prql_binder->Bind(*(prql_parse_data->statement));
-        return statement;
+      if (statement.query.empty()) {
+        throw BinderException("PRQL statement source text not found");
       }
-      throw BinderException("Registered state not found");
+      std::string sql_query_or_error;
+      if (!compile_prql(statement.query, sql_query_or_error)) {
+        // sql_query_or_error contains error string
+        throw ParserException(sql_query_or_error);
+      }
+
+      auto parser = Parser::GetBuiltinParser();
+      parser.ParseQuery(sql_query_or_error);
+      auto prql_state =
+          make_shared_ptr<PrqlState>(std::move(parser.statements[0]));
+      context.registered_state->Remove("prql");
+      context.registered_state->Insert("prql", prql_state);
+
+      auto prql_binder = Binder::CreateBinder(context, &binder);
+      return prql_binder->Bind(*prql_state->statement);
     }
   }
   default:
