@@ -138,7 +138,12 @@ function finish(code, message) {
 chrome.on('exit', (code, signal) => {
   if (exitCode === null) finish(1, `Chrome exited unexpectedly (${signal || code})\n${chromeLog}`);
   server.close();
-  rmSync(profile, { recursive: true, force: true, maxRetries: 3 });
+  try {
+    // Chrome's child processes may still be writing to the profile for a moment.
+    rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+  } catch (e) {
+    console.log(`Could not remove the Chrome profile ${profile}: ${e.message}`);
+  }
   process.exit(exitCode);
 });
 
