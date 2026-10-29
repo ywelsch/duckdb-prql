@@ -12,7 +12,9 @@ execute_process(
 # Propagate arch to Rust build for CI Copied from
 # rustyconover/duckdb-lindel-extension
 set(Rust_CARGO_TARGET "")
-if("${OS_NAME}" STREQUAL "linux")
+if(EMSCRIPTEN)
+    set(Rust_CARGO_TARGET "wasm32-unknown-emscripten")
+elseif("${OS_NAME}" STREQUAL "linux")
     if ("${OS_ARCH}" STREQUAL "arm64")
         set(Rust_CARGO_TARGET "aarch64-unknown-linux-gnu")
     elseif("${CMAKE_CXX_COMPILER}" MATCHES "aarch64")
@@ -67,7 +69,19 @@ set(EXTENSION_SOURCES src/prql_extension.cpp)
 add_library(${EXTENSION_NAME} STATIC ${EXTENSION_SOURCES})
 
 if(EMSCRIPTEN)
-  set(Rust_CARGO_TARGET "wasm32-unknown-emscripten")
+  # prqlc-c compiles to an empty library on all wasm targets, as PRQL only
+  # expects wasm32-unknown-unknown there. Its C API works fine on emscripten
+  # though, so only exclude the wasm targets that are not emscripten.
+  set(PRQLC_C_LIB
+      ${CMAKE_CURRENT_SOURCE_DIR}/prql/prqlc/bindings/prqlc-c/src/lib.rs)
+  file(READ ${PRQLC_C_LIB} PRQLC_C_SOURCE)
+  string(
+    REPLACE "#![cfg(not(target_family = \"wasm\"))]"
+            "#![cfg(not(all(target_family = \"wasm\", not(target_os = \"emscripten\"))))]"
+            PRQLC_C_SOURCE_PATCHED "${PRQLC_C_SOURCE}")
+  if(NOT "${PRQLC_C_SOURCE_PATCHED}" STREQUAL "${PRQLC_C_SOURCE}")
+    file(WRITE ${PRQLC_C_LIB} "${PRQLC_C_SOURCE_PATCHED}")
+  endif()
 endif()
 
 add_subdirectory(corrosion)
