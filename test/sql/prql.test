@@ -64,3 +64,34 @@ WITH inv AS (FROM read_csv_auto('https://raw.githubusercontent.com/PRQL/prql/0.8
 # multiple scoped transforms
 statement ok
 with x as (| from t1 | derive db_version = s"version()" |), y as (| from t1 | derive db_version = s"version()" |) from x union from y;
+
+# Results match the PRQL query
+query I
+from s"SELECT 41 AS a" | derive {b = a + 1} | select {b}
+----
+42
+
+# PRQL spanning multiple lines
+query I
+from s"SELECT * FROM (VALUES (1), (2), (3)) t(a)"
+filter a > 1
+sort {-a}
+select {a}
+----
+3
+2
+
+query T
+select * from (| from s"SELECT 'x' AS s" | derive t = f"{s}-y" | select {t} |)
+----
+x-y
+
+query I
+from s"SELECT 1 AS a" | derive d = @2024-01-15 | select {y = s"year({d})"}
+----
+2024
+
+query I
+from t2 | aggregate {n = count this}
+----
+10

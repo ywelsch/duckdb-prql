@@ -141,3 +141,15 @@ The main binaries that will be built are:
 - `prql.duckdb_extension` is the loadable binary as it would be distributed.
 
 To run the extension code, simply start the shell with `./build/release/duckdb`.
+
+### WebAssembly
+To build the extension for [DuckDB-Wasm](https://github.com/duckdb/duckdb-wasm), activate Emscripten 6.0.9 (the version DuckDB is built with), add the Rust target with `rustup target add wasm32-unknown-emscripten`, and run:
+```sh
+make wasm_eh
+```
+The tests in `test/sql` can then be run in DuckDB-Wasm using headless Chrome. This needs a DuckDB-Wasm build of the same DuckDB version (see `DUCKDB_WASM_VERSION` in `.github/workflows/MainDistributionPipeline.yml`):
+```sh
+npm pack @duckdb/duckdb-wasm@1.33.1-dev110.0 --pack-destination build
+tar -xzf build/duckdb-duckdb-wasm-1.33.1-dev110.0.tgz -C build
+node test/wasm/run.mjs --extension build/wasm_eh/extension/prql/prql.duckdb_extension.wasm --duckdb-wasm build/package/dist
+```

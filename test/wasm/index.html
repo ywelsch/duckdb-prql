@@ -1,0 +1,156 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>PRQL extension wasm tests</title>
+<link rel="icon" href="data:,">
+<pre id="out"></pre>
+<script type="importmap">
+{"imports": {"apache-arrow": "https://cdn.jsdelivr.net/npm/apache-arrow@17.0.0/+esm"}}
+</script>
+<script type="module">
+// Runs SQL logic test files against DuckDB-Wasm with the extension loaded, see run.mjs.
+// Supports the subset of the sqllogictest format that the tests use: statement ok/error, query with
+// results in row order, require, and comments. Anything else fails rather than being skipped silently.
+import * as duckdb from './duckdb/duckdb-browser.mjs';
+
+const params = new URLSearchParams(location.search);
+const flavor = params.get('flavor') || 'base';
+const extensionUrl = new URL(params.get('extension'), location.href).href;
+const testFiles = params.get('tests').split(',');
+
+const out = document.getElementById('out');
+function report(message) {
+  if (message.log !== undefined) out.textContent += message.log + '\n';
+  if (window.__report) window.__report(JSON.stringify(message));
+}
+const log = (line) => report({ log: line });
+
+// DuckDB-Wasm reads HTTP(S) files natively, so skip installing httpfs, which may not be published for the
+// DuckDB-Wasm build's version.
+const NO_OP_STATEMENTS = [/^\s*(INSTALL|LOAD)\s+httpfs\s*;?\s*$/i];
+
+function parseRecords(text) {
+  const lines = text.split(/\r?\n/);
+  const records = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim() === '' || lines[i].startsWith('#')) continue;
+    const line = i + 1;
+    const header = lines[i].trim().split(/\s+/);
+    const body = [];
+    while (i + 1 < lines.length && lines[i + 1].trim() !== '') body.push(lines[++i]);
+    const separator = body.indexOf('----');
+    records.push({
+      line,
+      header,
+      sql: (separator < 0 ? body : body.slice(0, separator)).join('\n'),
+      expected: separator < 0 ? [] : body.slice(separator + 1),
+    });
+  }
+  return records;
+}
+
+function formatValue(value) {
+  if (value === null || value === undefined) return 'NULL';
+  if (value === '') return '(empty)';
+  return String(value);
+}
+
+function formatRows(table) {
+  const rows = [];
+  for (let r = 0; r < table.numRows; r++) {
+    const row = [];
+    for (let c = 0; c < table.numCols; c++) row.push(formatValue(table.getChildAt(c).get(r)));
+    rows.push(row.join('\t'));
+  }
+  return rows;
+}
+
+async function openDatabase() {
+  const dist = new URL('./duckdb/', location.href);
+  const bundle = flavor === 'threads'
+    ? { mainModule: 'duckdb-threads.wasm', mainWorker: 'duckdb-browser-threads.worker.js',
+        pthreadWorker: 'duckdb-browser-threads.pthread.worker.js' }
+    : { mainModule: 'duckdb-base.wasm', mainWorker: 'duckdb-browser-base.worker.js' };
+  const worker = new Worker(new URL(bundle.mainWorker, dist));
+  const db = new duckdb.AsyncDuckDB(new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING), worker);
+  await db.instantiate(new URL(bundle.mainModule, dist).href,
+                       bundle.pthreadWorker && new URL(bundle.pthreadWorker, dist).href);
+  await db.open({ allowUnsignedExtensions: true });
+  return { db, conn: await db.connect() };
+}
+
+// Returns an error message, or null if the record passed.
+async function runRecord(conn, record) {
+  const [kind, mode, sortMode] = record.header;
+  if (kind === 'statement' && (mode === 'ok' || mode === 'error')) {
+    if (NO_OP_STATEMENTS.some((re) => re.test(record.sql))) return null;
+    let error = null;
+    try {
+      await conn.query(record.sql);
+    } catch (e) {
+      error = String(e?.message ?? e);
+    }
+    if (mode === 'ok') return error && `unexpected error: ${error}`;
+    if (error === null) return 'expected an error, but the statement succeeded';
+    const expected = record.expected.join('\n');
+    return error.includes(expected) ? null : `expected error containing "${expected}", got: ${error}`;
+  }
+  if (kind === 'query' && mode && sortMode === undefined) {
+    let rows;
+    try {
+      rows = formatRows(await conn.query(record.sql));
+    } catch (e) {
+      return `unexpected error: ${e?.message ?? e}`;
+    }
+    return JSON.stringify(rows) === JSON.stringify(record.expected)
+      ? null : `expected:\n${record.expected.join('\n')}\nactual:\n${rows.join('\n')}`;
+  }
+  return `unsupported record: ${record.header.join(' ')}`;
+}
+
+async function runFile(path, counts) {
+  const text = await (await fetch(path)).text();
+  const { db, conn } = await openDatabase();
+  try {
+    if (path === testFiles[0]) {
+      const version = (await conn.query("SELECT version() AS v, (SELECT platform FROM pragma_platform()) AS p"))
+        .toArray()[0];
+      log(`DuckDB ${version.v} (${version.p})\n`);
+    }
+    log(path);
+    for (const record of parseRecords(text)) {
+      const where = `${path}:${record.line}`;
+      if (record.header[0] === 'require') {
+        if (record.header[1] !== 'prql') {
+          log(`  SKIP ${where}: require ${record.header[1]}`);
+          counts.skipped++;
+          return;
+        }
+        // The extension is stamped with the release version, while DuckDB-Wasm builds of the same commit may
+        // report a dev version, so do not insist on the versions matching.
+        await conn.query('SET allow_extensions_metadata_mismatch = true');
+        record.header = ['statement', 'ok'];
+        record.sql = `LOAD '${extensionUrl}'`;
+      }
+      const error = await runRecord(conn, record);
+      if (error) {
+        counts.failed++;
+        log(`  FAIL ${where}: ${record.sql}\n${error.replace(/^/gm, '    ')}`);
+      } else {
+        counts.passed++;
+      }
+    }
+  } finally {
+    await conn.close();
+    await db.terminate();
+  }
+}
+
+const counts = { passed: 0, failed: 0, skipped: 0 };
+try {
+  for (const path of testFiles) await runFile(path, counts);
+} catch (e) {
+  counts.failed++;
+  log(`FATAL ${e?.stack ?? e}`);
+}
+report({ done: counts });
+</script>
